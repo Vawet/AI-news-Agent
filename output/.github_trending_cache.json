@@ -1,0 +1,51 @@
+{
+  "2026-09-01": [
+    "THU-MAIC/OpenMAIC",
+    "K-Dense-AI/scientific-agent-skills",
+    "tt-a1i/archify",
+    "p-e-w/heretic",
+    "unclecode/crawl4ai",
+    "mvanhorn/last30days-skill",
+    "punkpeye/awesome-mcp-servers",
+    "pollen-robotics/microduck_rl",
+    "handsomestWei/patent-disclosure-skill",
+    "tashfeenahmed/freellmapi",
+    "livekit/agents",
+    "abhigyanpatwari/GitNexus"
+  ],
+  "2026-09-02": [
+    "THU-MAIC/OpenMAIC",
+    "tt-a1i/archify",
+    "K-Dense-AI/scientific-agent-skills",
+    "jingyaogong/minimind",
+    "Osmantic/ODS",
+    "affaan-m/ECC",
+    "p-e-w/heretic",
+    "handsomestWei/patent-disclosure-skill",
+    "pollen-robotics/microduck_rl"
+  ],
+  "2026-09-03": [
+    "Imbad0202/academic-research-skills",
+    "THU-MAIC/OpenMAIC",
+    "jingyaogong/minimind",
+    "browser-use/video-use",
+    "K-Dense-AI/scientific-agent-skills",
+    "affaan-m/ECC",
+    "unclecode/crawl4ai"
+  ],
+  "2026-09-04": [
+    "google-research/timesfm",
+    "DietrichGebert/ponytail",
+    "debpalash/VoiceStudio",
+    "ChromeDevTools/chrome-devtools-mcp",
+    "NousResearch/hermes-agent",
+    "superlinked/sie",
+    "pacifio/atlas",
+    "Imbad0202/academic-research-skills",
+    "affaan-m/ECC",
+    "blader/humanizer",
+    "JuliusBrussee/caveman",
+    "mattpocock/skills",
+    "Gitlawb/openclaude"
+  ]
+}

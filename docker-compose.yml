@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  # Pipeline 服务（定时运行，每天 08:00 CST = 00:00 UTC）
+  # 数据库使用外部 Neon PostgreSQL，无需本地 postgres
+  agent:
+    image: ${AGENT_IMAGE:-wyh0626/ai-news-agent:latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      OUTPUT_DIR: /app/output
+    volumes:
+      # 输出目录（持久化）
+      - ./output:/app/output
+      # site 内容目录（用于 git push）
+      - ./site/src/content/blog:/app/site/src/content/blog
+      # git 仓库（用于 push）
+      - ./.git:/app/.git
+      # SSH key（用于 git push）
+      - ${SSH_KEY_PATH:-~/.ssh/id_ed25519}:/root/.ssh/id_ed25519:ro
+    command: >
+      bash -c "
+        echo '0 0 * * * cd /app && bash scripts/run_and_push.sh >> /app/output/pipeline.log 2>&1' | crontab - &&
+        cron -f
+      "
