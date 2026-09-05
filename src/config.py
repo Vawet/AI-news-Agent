@@ -86,6 +86,14 @@ class Settings(BaseSettings):
     min_items_to_write: int = 5
     log_level: str = "INFO"
 
+    # Profile 化资讯评分
+    scoring_profile: str = "tech-news"  # profile 名称或 auto
+    scoring_profiles_dir: str = "profiles"
+    scoring_batch_size: int = 10
+    scoring_max_concurrent: int = 3
+    scoring_max_retries: int = 3
+    scoring_max_items: int = 20
+
     @property
     def output_path(self) -> Path:
         p = Path(self.output_dir)

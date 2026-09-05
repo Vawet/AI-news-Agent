@@ -28,7 +28,7 @@ Pick the 2-3 most important news from featured items, expand with ### numbered h
 
 ### 1. News Headline
 
-2-3 sentence analysis with background and impact. [Source-source](url)
+2-3 sentence analysis with background and impact. **AI Score: 9.1/10** [Source-source](url) — url
 
 ### 2. News Headline
 
@@ -40,15 +40,15 @@ Group remaining featured news by topic, each group as a ### heading, items as bu
 
 ### Topic Name
 
-- **News Headline** — One-sentence summary + brief analysis. [Source-source](url)
-- **News Headline** — One-sentence summary. [Source-source](url)
+- **News Headline** — One-sentence summary + brief analysis. **AI Score: 8.2/10** [Source-source](url) — url
+- **News Headline** — One-sentence summary. **AI Score: 7.5/10** [Source-source](url) — url
 
 ## ⚡ Quick Bites
 
 All brief items as a flat bullet list, no grouping:
 
-- **News Headline** — One-sentence summary. [Source-source](url)
-- **News Headline** — One-sentence summary. [Source-source](url)
+- **News Headline** — One-sentence summary. **AI Score: 7.0/10** [Source-source](url) — url
+- **News Headline** — One-sentence summary. **AI Score: 7.0/10** [Source-source](url) — url
 
 ---
 
@@ -60,12 +60,13 @@ Writing rules:
 1. "Top Stories" has only 2-3 items with ### numbered headings, each with 2-3 sentence analysis
 2. "Featured" groups by topic (e.g. "Open Source Models", "AI Safety", "Tools & Frameworks"), items as - **Title** — summary format
 3. "Quick Bites" is a flat list, - **Title** — one sentence format
-4. Every news item MUST include [Source-source](url), where "source" comes from the source field (x, reddit, hackernews, arxiv, github, rss)
+4. Every news item MUST visibly include its exact **AI Score: x.x/10**, then [Source-source](url), then the plain origin URL so readers can see the address
 5. Similar news from different sources can be merged
 6. Professional, concise writing for AI practitioners
-7. Output Markdown directly, no code blocks
+7. For Top Stories, use ai_reason to explain why the item matters to Agent developers
+8. Output Markdown directly, no code blocks
 
-## Featured Items (importance ≥ {threshold}, {featured_count} items)
+## Featured Items (AI score ≥ {threshold}, {featured_count} items)
 {featured_json}
 
 ## Brief Items ({brief_count} items)
@@ -103,7 +104,7 @@ def _build_fallback_markdown(items: list[ExtractedItem], today: str) -> str:
     ]
 
     # Top Stories: importance >= 8 的前 3 条
-    top_items = [i for i in items if i.importance_score >= 8][:3]
+    top_items = [i for i in items if i.ai_score >= 8][:3]
     if top_items:
         lines.append("## 🔥 Top Stories")
         lines.append("")
@@ -112,12 +113,15 @@ def _build_fallback_markdown(items: list[ExtractedItem], today: str) -> str:
             lines.append(f"### {idx}. {item.title}")
             lines.append("")
             src = item.source_type.value
-            lines.append(f"{summary} [Source-{src}]({item.url})")
+            lines.append(
+                f"{summary} {item.ai_reason} "
+                f"**AI Score: {item.ai_score:.1f}/10** [Source-{src}]({_origin_url(item)})"
+            )
             lines.append("")
 
     # Featured: 按话题分组，排除已在焦点中展示的
     top_ids = {id(i) for i in top_items}
-    featured = [i for i in items if i.importance_score >= 7 and id(i) not in top_ids]
+    featured = [i for i in items if i.ai_score >= 7 and id(i) not in top_ids]
     if featured:
         groups = _group_by_topic(featured)
         lines.append("## 📰 Featured")
@@ -128,18 +132,24 @@ def _build_fallback_markdown(items: list[ExtractedItem], today: str) -> str:
             for item in topic_items:
                 summary = item.summary or item.title
                 src = item.source_type.value
-                lines.append(f"- **{item.title}** — {summary} [Source-{src}]({item.url})")
+                lines.append(
+                    f"- **{item.title}** — {summary} "
+                    f"**AI Score: {item.ai_score:.1f}/10** [Source-{src}]({_origin_url(item)})"
+                )
             lines.append("")
 
     # Quick Bites
-    brief = [i for i in items if i.importance_score < 7]
+    brief = [i for i in items if i.ai_score < 7]
     if brief:
         lines.append("## ⚡ Quick Bites")
         lines.append("")
         for item in brief:
             summary = item.summary or item.title
             src = item.source_type.value
-            lines.append(f"- **{item.title}** — {summary} [Source-{src}]({item.url})")
+            lines.append(
+                f"- **{item.title}** — {summary} "
+                f"**AI Score: {item.ai_score:.1f}/10** [Source-{src}]({_origin_url(item)})"
+            )
         lines.append("")
 
     lines.append("---")
@@ -179,6 +189,30 @@ def _normalize_source_links(markdown: str) -> str:
     return re.sub(r'\[([^\]]*)\]\((https?://[^\)]+)\)', replacer, markdown)
 
 
+def _origin_url(item: ExtractedItem) -> str:
+    """原文地址：Reddit 等讨论型来源优先取站外原文链接"""
+    return (item.metadata or {}).get("original_url") or item.url
+
+
+def _annotate_items(markdown: str, items: list[ExtractedItem]) -> str:
+    """Deterministically add the score and a readable origin URL per item."""
+    lines = markdown.splitlines()
+    for item in items:
+        if not item.url:
+            continue
+        origin = _origin_url(item)
+        for index, line in enumerate(lines):
+            if item.url not in line and origin not in line:
+                continue
+            if "AI Score:" not in line:
+                line = f"{line} **AI Score: {item.ai_score:.1f}/10**"
+            if not line.rstrip().endswith(origin):
+                line = f"{line} — {origin}"
+            lines[index] = line
+            break
+    return "\n".join(lines)
+
+
 def _items_to_json(items: list[ExtractedItem], brief: bool = False) -> str:
     """将新闻条目转为 JSON 字符串；brief=True 时只保留必要字段以节省 token"""
     import json
@@ -188,17 +222,22 @@ def _items_to_json(items: list[ExtractedItem], brief: bool = False) -> str:
         if brief:
             data.append({
                 "title": item.title,
+                "summary": item.summary,
+                "ai_score": item.ai_score,
                 "source": item.source_type.value,
-                "url": item.url,
+                "url": _origin_url(item),
             })
         else:
             data.append({
                 "title": item.title,
                 "summary": item.summary,
                 "topics": item.topics,
-                "importance_score": item.importance_score,
+                "ai_score": item.ai_score,
+                "ai_reason": item.ai_reason,
+                "score_tags": item.score_tags,
+                "scoring_profile": item.scoring_profile,
                 "source": item.source_type.value,
-                "url": item.url,
+                "url": _origin_url(item),
             })
     return json.dumps(data, ensure_ascii=False, indent=2)
 
@@ -206,9 +245,9 @@ def _items_to_json(items: list[ExtractedItem], brief: bool = False) -> str:
 def _split_featured_brief(
     items: list[ExtractedItem],
 ) -> tuple[list[ExtractedItem], list[ExtractedItem]]:
-    """按 importance_score 将新闻分为重点和简要两层
+    """按 ai_score 将新闻分为重点和简要两层
 
-    items 已按 importance_score 降序排列（由 Extractor 保证）
+    items 已按 ai_score 降序排列（由 Scorer 保证）
     """
     top_k = settings.top_k_featured
     featured = items[:top_k]
@@ -254,7 +293,7 @@ async def writer_node(state: PipelineState) -> dict:
         logger.warning("No extracted items, skipping writing")
         return {"article": None}
 
-    # 过滤低分非新闻条目
+    # 兼容旧配置；Profile threshold 已在 Scorer 阶段执行
     min_score = settings.min_importance_score
     before_count = len(extracted)
     extracted = [item for item in extracted if item.importance_score >= min_score]
@@ -270,7 +309,7 @@ async def writer_node(state: PipelineState) -> dict:
 
     today = (datetime.now(tz=timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
     featured, brief = _split_featured_brief(extracted)
-    threshold = featured[-1].importance_score if featured else 0
+    threshold = featured[-1].ai_score if featured else 0
 
     logger.info(
         f"Writing {today} newsletter: "
@@ -315,7 +354,9 @@ async def writer_node(state: PipelineState) -> dict:
         markdown = _build_fallback_markdown(extracted, today)
 
     # 用 LLM 生成一句话 description（双语）
-    top3 = sorted(extracted, key=lambda x: x.importance_score, reverse=True)[:3]
+    markdown = _annotate_items(markdown, extracted)
+
+    top3 = sorted(extracted, key=lambda x: x.ai_score, reverse=True)[:3]
     description, description_zh = await _generate_description(top3, today)
 
     article = GeneratedArticle(

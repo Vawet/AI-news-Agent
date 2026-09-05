@@ -1,6 +1,7 @@
 """Hacker News 数据源适配器 - 通过 hnrss 采集 AI 相关热门内容"""
 
 import logging
+import re
 from datetime import datetime, timezone
 from time import mktime
 from urllib.parse import quote
@@ -89,6 +90,7 @@ class HackerNewsSource(BaseSource):
 
             hn_url = entry.get("comments", "")
             original_url = entry.get("link", "")
+            score = self._parse_score(entry)
 
             item = RawItem(
                 source_type=SourceType.HACKERNEWS,
@@ -98,9 +100,12 @@ class HackerNewsSource(BaseSource):
                 url=original_url,
                 author=entry.get("author", ""),
                 published_at=published,
+                score=score,
                 metadata={
                     "hn_url": hn_url,
                     "original_url": original_url,
+                    "points": score,
+                    "num_comments": self._parse_comments(entry),
                 },
             )
             items.append(item)
@@ -111,6 +116,28 @@ class HackerNewsSource(BaseSource):
             f"LLM filtered {len(candidates)} → {len(items)})"
         )
         return items
+
+    @staticmethod
+    def _parse_score(entry) -> int:
+        for key in ("score", "points", "hnrss_points"):
+            value = entry.get(key)
+            if value is not None:
+                match = re.search(r"\d+", str(value))
+                if match:
+                    return int(match.group())
+        text = f"{entry.get('summary', '')} {entry.get('title', '')}"
+        match = re.search(r"(\d+)\s+points?", text, re.IGNORECASE)
+        return int(match.group(1)) if match else 0
+
+    @staticmethod
+    def _parse_comments(entry) -> int:
+        for key in ("comments_count", "num_comments"):
+            value = entry.get(key)
+            if value is not None and str(value).isdigit():
+                return int(value)
+        text = entry.get("summary", "")
+        match = re.search(r"(\d+)\s+comments?", text, re.IGNORECASE)
+        return int(match.group(1)) if match else 0
 
     @staticmethod
     def _parse_time(entry) -> datetime | None:

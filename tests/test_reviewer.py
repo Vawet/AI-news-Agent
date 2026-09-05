@@ -1,44 +1,36 @@
-"""Reviewer Agent 测试"""
+"""Reviewer Agent tests."""
 
-from src.agents.reviewer import _auto_review
-
-
-def test_auto_review_passes():
-    good_md = """# AI 日报 - 2025-02-13
-
-> 共 10 条新闻
-
-## LLM
-- [News 1](https://example.com/1)
-- [News 2](https://example.com/2)
-- [News 3](https://example.com/3)
-
-## 开源
-- [News 4](https://example.com/4)
-- [News 5](https://example.com/5)
-
----
-*自动生成*
-"""
-    result = _auto_review(good_md)
-    assert result["passed"] is True
-    assert result["score"] == 100
+from src.agents.reviewer import _merge_items, _parse_merge_groups
+from src.models import ExtractedItem, SourceType
 
 
-def test_auto_review_too_short():
-    result = _auto_review("short")
-    assert result["passed"] is False
-    assert "过短" in str(result["issues"])
+def _item(item_id: str, score: float) -> ExtractedItem:
+    return ExtractedItem(
+        id=item_id,
+        source_type=SourceType.HACKERNEWS,
+        title=f"News {item_id}",
+        content="content",
+        url=f"https://example.com/{item_id}",
+        importance_score=score,
+        ai_score=score,
+        ai_reason="reason",
+        scoring_profile="tech-news",
+    )
 
 
-def test_auto_review_no_title():
-    content = "no title here\n" * 20
-    result = _auto_review(content)
-    assert result["passed"] is False
+def test_parse_merge_groups_object():
+    raw = '{"groups":[{"group":[0,1],"keep":0,"reason":"same event"}]}'
+    assert _parse_merge_groups(raw)[0]["group"] == [0, 1]
 
 
-def test_auto_review_no_links():
-    content = "# Title\n" + "content line\n" * 20
-    result = _auto_review(content)
-    assert result["passed"] is False
-    assert "链接" in str(result["issues"])
+def test_parse_invalid_merge_groups_returns_empty():
+    assert _parse_merge_groups("not json") == []
+
+
+def test_merge_always_keeps_highest_profile_score():
+    items = [_item("low", 7.2), _item("high", 9.1), _item("other", 8.0)]
+    groups = [{"group": [0, 1], "keep": 0, "reason": "same event"}]
+
+    merged = _merge_items(items, groups)
+
+    assert [item.id for item in merged] == ["high", "other"]

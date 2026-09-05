@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import re
 from typing import Optional
 
 from langchain_openai import ChatOpenAI
@@ -114,6 +115,7 @@ def _fallback_extract(item: CleanedItem) -> ExtractedItem:
         url=item.url,
         author=item.author,
         published_at=item.published_at,
+        platform_score=item.platform_score,
         summary=item.content[:200] if item.content else item.title,
         topics=["AI"],
         entities=[],
@@ -155,6 +157,7 @@ async def _extract_one(llm: ChatOpenAI, item: CleanedItem) -> ExtractedItem:
             url=item.url,
             author=item.author,
             published_at=item.published_at,
+        platform_score=item.platform_score,
             summary=parsed.get("summary", ""),
             topics=parsed.get("topics", []),
             entities=parsed.get("entities", []),

@@ -1,5 +1,6 @@
 """Reddit 数据源适配器 - 通过 RSS feed 采集热门 AI 内容"""
 
+import asyncio
 import logging
 import re
 from datetime import datetime, timezone
@@ -14,7 +15,15 @@ from src.tools.ai_filter import batch_filter_ai
 
 logger = logging.getLogger(__name__)
 
-USER_AGENT = "AI-News-Agent/1.0 (Reddit RSS)"
+USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/122.0 Safari/537.36"
+)
+
+# Reddit 按 IP 限流，多个子版块必须串行请求并留出间隔，否则整批返回 429
+_REDDIT_GATE = asyncio.Semaphore(1)
+_REQUEST_SPACING_SECONDS = 6.0
+_MAX_ATTEMPTS = 4
 
 
 def _strip_html(text: str) -> str:
@@ -35,6 +44,15 @@ def _extract_comments_count(summary: str) -> int:
     return int(m.group(1)) if m else 0
 
 
+def _extract_external_url(summary_html: str) -> str:
+    """从 RSS summary 中取出指向站外的原文链接（自帖没有外链则为空）"""
+    for href in re.findall(r'href="([^"]+)"', summary_html):
+        url = href.replace("&amp;", "&")
+        if url.startswith("http") and "reddit.com" not in url and "redd.it" not in url:
+            return url
+    return ""
+
+
 class RedditRSSSource(BaseSource):
     """通过 Reddit RSS feed 采集子版块热门内容
 
@@ -52,20 +70,47 @@ class RedditRSSSource(BaseSource):
     def source_id(self) -> str:
         return f"reddit:{self.subreddit}"
 
-    async def fetch(self, since: datetime | None = None) -> list[RawItem]:
-        logger.info(f"Fetching Reddit r/{self.subreddit} (RSS hot) ...")
-        try:
+    async def _get_feed_text(self) -> str | None:
+        """串行拉取 RSS，遇到 429 时按退避重试"""
+        async with _REDDIT_GATE:
             async with httpx.AsyncClient(
                 timeout=30,
                 headers={"User-Agent": USER_AGENT},
                 follow_redirects=True,
             ) as client:
-                resp = await client.get(self.url)
-                resp.raise_for_status()
-            feed = feedparser.parse(resp.text)
+                for attempt in range(_MAX_ATTEMPTS):
+                    resp = await client.get(self.url)
+                    if resp.status_code != 429:
+                        resp.raise_for_status()
+                        await asyncio.sleep(_REQUEST_SPACING_SECONDS)
+                        return resp.text
+
+                    if attempt == _MAX_ATTEMPTS - 1:
+                        break
+                    delay = float(
+                        resp.headers.get("retry-after")
+                        or _REQUEST_SPACING_SECONDS * 2 ** (attempt + 1)
+                    )
+                    logger.info(
+                        f"r/{self.subreddit}: rate limited, retrying in {delay:.0f}s "
+                        f"({attempt + 1}/{_MAX_ATTEMPTS - 1})"
+                    )
+                    await asyncio.sleep(delay)
+
+            logger.error(f"Fetch r/{self.subreddit} RSS failed: rate limited by Reddit")
+            return None
+
+    async def fetch(self, since: datetime | None = None) -> list[RawItem]:
+        logger.info(f"Fetching Reddit r/{self.subreddit} (RSS hot) ...")
+        try:
+            feed_text = await self._get_feed_text()
         except Exception as e:
             logger.error(f"Fetch r/{self.subreddit} RSS failed: {e}")
             return []
+
+        if feed_text is None:
+            return []
+        feed = feedparser.parse(feed_text)
 
         entries = feed.get("entries", [])
         if not entries:
@@ -107,6 +152,7 @@ class RedditRSSSource(BaseSource):
                 "title": title,
                 "content": content_text,
                 "link": link,
+                "external_url": _extract_external_url(summary_html),
                 "author": author,
                 "published": published,
                 "comments": comments,
@@ -140,6 +186,7 @@ class RedditRSSSource(BaseSource):
                 metadata={
                     "subreddit": self.subreddit,
                     "reddit_url": c["link"],
+                    "original_url": c["external_url"] or c["link"],
                     "num_comments": c["comments"],
                 },
             )

@@ -57,6 +57,7 @@ class CleanedItem(BaseModel):
     published_at: Optional[datetime] = None
     language: str = "en"
     quality_score: float = Field(default=0.0, ge=0, le=1, description="质量评分 0-1")
+    platform_score: int = Field(default=0, description="平台原始热度，仅供 LLM 评分参考")
     is_duplicate: bool = False
     duplicate_of: Optional[str] = None
     metadata: dict = Field(default_factory=dict, description="平台特有的额外字段（图片等）")
@@ -75,6 +76,7 @@ class ExtractedItem(BaseModel):
     url: str = ""
     author: str = ""
     published_at: Optional[datetime] = None
+    platform_score: int = Field(default=0, description="平台原始热度，仅供 LLM 评分参考")
 
     # 提取字段
     summary: str = Field(default="", description="2-3 句话的核心摘要")
@@ -82,6 +84,10 @@ class ExtractedItem(BaseModel):
     entities: list[str] = Field(default_factory=list, description="关键实体: 公司、人物、模型名")
     sentiment: Sentiment = Sentiment.NEUTRAL
     importance_score: float = Field(default=5.0, ge=1, le=10, description="重要性评分 1-10")
+    ai_score: float = Field(default=0.0, ge=0, le=10, description="Profile 评分 0-10")
+    ai_reason: str = Field(default="", description="Profile 评分理由")
+    scoring_profile: str = Field(default="", description="所使用的评分 Profile")
+    score_tags: list[str] = Field(default_factory=list, description="评分模型返回的标签")
     related_ids: list[str] = Field(default_factory=list, description="关联的历史新闻 ID")
     metadata: dict = Field(default_factory=dict, description="平台特有的额外字段（图片等）")
 

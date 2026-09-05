@@ -27,8 +27,9 @@ TRANSLATE_PROMPT = """你是一位专业的 AI 新闻翻译。请将以下英文
 7. 所有 URL 保持不变
 8. 翻译链接标签：[Source-xxx] → [来源-xxx]
 9. 翻译固定章节标题：Top Stories → 今日焦点, Featured → 重点报道, Quick Bites → 快讯速览
-10. 标题格式："AI 日报 — YYYY-MM-DD"
-11. 直接输出翻译后的 Markdown，不要包裹在代码块中
+10. 将 `AI Score: x.x/10` 翻译为 `AI 评分：x.x/10`，数字必须原样保留
+11. 标题格式："AI 日报 — YYYY-MM-DD"
+12. 直接输出翻译后的 Markdown，不要包裹在代码块中
 
 --- English Newsletter ---
 {markdown}"""

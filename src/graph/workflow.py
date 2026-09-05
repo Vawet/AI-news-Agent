@@ -12,6 +12,7 @@ from src.agents.dedup import dedup_node
 from src.agents.extractor import extractor_node
 from src.agents.memory_updater import update_memory_node
 from src.agents.reviewer import reviewer_node
+from src.agents.scorer import scorer_node
 from src.agents.translator import translator_node
 from src.agents.writer import writer_node
 from src.graph.conditions import should_write
@@ -57,6 +58,7 @@ def build_workflow() -> StateGraph:
     workflow.add_node("cleaner", cleaner_node)
     workflow.add_node("dedup", dedup_node)
     workflow.add_node("extractor", extractor_node)
+    workflow.add_node("scorer", scorer_node)
     workflow.add_node("reviewer", reviewer_node)
     workflow.add_node("writer", writer_node)
     workflow.add_node("translator", translator_node)
@@ -70,10 +72,11 @@ def build_workflow() -> StateGraph:
     workflow.add_edge("collector", "cleaner")
     workflow.add_edge("cleaner", "dedup")
     workflow.add_edge("dedup", "extractor")
+    workflow.add_edge("extractor", "scorer")
 
     # 条件边：是否生成文章
     workflow.add_conditional_edges(
-        "extractor",
+        "scorer",
         should_write,
         {
             "write": "reviewer",

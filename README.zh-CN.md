@@ -393,9 +393,24 @@ MAX_ITEMS_PER_RUN=50       # 每次运行最多处理条数
 MAX_ITEMS_PER_SOURCE=15    # 每个数据源最多入选条数
 ARXIV_MAX_ITEMS=5          # ArXiv 单独上限（避免论文占比过高）
 TOP_K_FEATURED=10          # 精选条目数量
+SCORING_PROFILE=tech-news  # 评分规则集名称；auto 会由 LLM 自动匹配
+SCORING_BATCH_SIZE=10      # 每次评分的资讯条数
+SCORING_MAX_ITEMS=20       # 通过阈值和分类配额后的总上限
 REPORT_MODE=daily          # daily / weekly
 LOG_LEVEL=INFO             # DEBUG 可看到详细采集日志
 ```
+
+### 自定义评分 Profile
+
+每套规则位于 `profiles/<name>/`，包含：
+
+- `profile.toml`：阈值、最终条数及 `category_groups` 分类配额
+- `analysis.md`：0-10 分标尺与结构化输出 Prompt
+- `match.md`：`SCORING_PROFILE=auto` 时使用的自动匹配 Prompt
+
+内置 `tech-news` 面向 AI Agent 开发者，重点评价框架、可复用范例、评测、
+工具链、生产实践，以及会改变 Agent 架构或运行方式的生态改革。平台热度只作为
+模型参考，不参与固定加权。低于 Profile 阈值的内容不会进入日报。
 
 ## 技术栈
 

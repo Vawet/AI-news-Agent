@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir -e ".[prod]"
 # 复制源码
 COPY src/ src/
 COPY scripts/ scripts/
+COPY profiles/ profiles/
 COPY site/scripts/ site/scripts/
 
 # 创建必要目录

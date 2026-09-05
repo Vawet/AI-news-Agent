@@ -119,7 +119,6 @@ def _merge_items(items: list[ExtractedItem], groups: list[dict]) -> list[Extract
 
     for g in groups:
         indices = g.get("group", [])
-        keep_idx = g.get("keep", indices[0] if indices else 0)
         reason = g.get("reason", "")
 
         if not indices or len(indices) < 2:
@@ -131,7 +130,8 @@ def _merge_items(items: list[ExtractedItem], groups: list[dict]) -> list[Extract
             logger.warning(f"Merge group index out of range: {indices}, skipping")
             continue
 
-        # keep 条目吸收其他条目的信息
+        # 相似故事始终保留 Profile 评分最高的一条
+        keep_idx = max(indices, key=lambda idx: items[idx].ai_score)
         keep_item = items[keep_idx]
         merged_urls = []
         for idx in indices:
@@ -140,10 +140,6 @@ def _merge_items(items: list[ExtractedItem], groups: list[dict]) -> list[Extract
                 other = items[idx]
                 if other.url and other.url != keep_item.url:
                     merged_urls.append(other.url)
-                # 取更高的 importance_score
-                if other.importance_score > keep_item.importance_score:
-                    keep_item.importance_score = other.importance_score
-
         logger.info(
             f"Merged {len(indices)} items → keep [{keep_idx}] '{keep_item.title}' "
             f"(reason: {reason})"
