@@ -76,25 +76,33 @@ class HuggingFacePapersSource(BaseSource):
             abstract = entry.get("summary") or paper_info.get("summary", "")
             arxiv_url = f"https://arxiv.org/abs/{paper_id}" if paper_id else ""
             hf_url = f"https://huggingface.co/papers/{paper_id}" if paper_id else ""
+            github_repo = paper_info.get("githubRepo") or ""
+            project_page = paper_info.get("projectPage") or ""
+            github_stars = paper_info.get("githubStars") or 0
 
             if not title:
                 continue
 
+            authors = [a.get("name", "") for a in paper_info.get("authors", []) if a.get("name")]
             item = RawItem(
                 source_type=SourceType.HUGGINGFACE,
                 source_id=paper_id,
                 title=title,
-                content=abstract[:500] if abstract else title,
+                content=abstract or title,
                 url=hf_url or arxiv_url,
-                author=", ".join(
-                    a.get("name", "") for a in paper_info.get("authors", [])[:3]
-                ),
+                author=", ".join(authors[:8]),
                 published_at=published,
                 score=upvotes,
                 metadata={
                     "upvotes": upvotes,
+                    "stars": github_stars,
+                    "authors": authors,
                     "arxiv_url": arxiv_url,
                     "hf_url": hf_url,
+                    "github_repo": github_repo,
+                    "project_page": project_page,
+                    "original_url": arxiv_url or hf_url,
+                    "official_summary": abstract or title,
                 },
             )
             items.append(item)

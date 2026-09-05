@@ -18,7 +18,12 @@ logger = logging.getLogger(__name__)
 _ENGAGEMENT_KEYS = (
     "score", "points", "upvote_ratio", "num_comments", "comment_count",
     "comments", "likes", "retweets", "replies", "upvotes", "stars",
+    "stars_today", "feed_rank", "language",
 )
+
+_CONTENT_LIMIT = 2500
+_SUMMARY_LIMIT = 2000
+_COMMUNITY_LIMIT = 1800
 
 
 def _build_llm() -> ChatOpenAI:
@@ -43,17 +48,29 @@ def _item_payload(index: int, item: ExtractedItem) -> dict:
         if key in metadata and metadata[key] not in (None, "")
     }
     engagement["platform_score"] = item.platform_score
-    has_comments = any(
-        int(engagement.get(key, 0) or 0) > 0
-        for key in ("num_comments", "comment_count", "comments", "replies")
-    )
-    content_limit = 800 if has_comments else 1000
+    official_summary = str(
+        metadata.get("official_summary") or item.summary or ""
+    )[:_SUMMARY_LIMIT]
+    community = str(metadata.get("community_summary") or "")[:_COMMUNITY_LIMIT]
+    body = str(metadata.get("full_content") or item.content or "")
     return {
         "index": index,
         "title": item.title,
         "summary": item.summary,
-        "content": item.content[:content_limit],
+        "official_summary": official_summary,
+        "content_brief": body[:_CONTENT_LIMIT],
+        "community": community,
         "source": item.source_type.value,
+        "source_authority": item.source_type.value,
+        "authors": metadata.get("authors") or item.author,
+        "links": {
+            "url": (metadata.get("original_url") or item.url),
+            "arxiv_url": metadata.get("arxiv_url"),
+            "github_repo": metadata.get("github_repo"),
+            "project_page": metadata.get("project_page"),
+            "hf_url": metadata.get("hf_url"),
+            "hn_url": metadata.get("hn_url"),
+        },
         "engagement_context": engagement,
     }
 

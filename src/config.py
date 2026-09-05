@@ -28,6 +28,7 @@ class Settings(BaseSettings):
 
     # 数据源
     reddit_subreddits: str = "LocalLLaMA,MachineLearning,artificial"
+    enable_reddit: bool = False
     hn_min_score: int = 50
     twitter_api_key: str = ""
     twitter_kol_list: str = ""

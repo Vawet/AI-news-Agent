@@ -13,6 +13,7 @@ from src.config import settings
 from src.models import RawItem, SourceType
 from src.sources.base import BaseSource
 from src.tools.ai_filter import batch_filter_ai
+from src.tools.content import html_to_text
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,13 @@ class GitHubTrendingSource(BaseSource):
         match = re.search(r"github\.com/([^/]+/[^/]+)", link)
         return match.group(1) if match else ""
 
+    @staticmethod
+    def _parse_stars_today(html: str) -> int:
+        match = re.search(r"([\d,]+)\s+stars?\s+today", html, re.IGNORECASE)
+        if not match:
+            return 0
+        return int(match.group(1).replace(",", ""))
+
     async def fetch(self, since: datetime | None = None) -> list[RawItem]:
         logger.info(f"Fetching GitHub Trending (RSS: {self.rss_url}) ...")
 
@@ -102,20 +110,24 @@ class GitHubTrendingSource(BaseSource):
             logger.info("GitHub Trending: no RSS entries")
             return []
 
-        # 构建候选列表
+        # 构建候选列表；RSS 顺序即当日 Trending 排名
         candidates: list[dict] = []
-        for entry in entries:
+        for rank, entry in enumerate(entries, start=1):
             link = entry.get("link", "")
             full_name = self._extract_full_name(link)
             if not full_name:
                 continue
             title = entry.get("title", full_name)
-            desc = entry.get("summary", "") or ""
+            raw_desc = entry.get("summary", "") or ""
+            desc = html_to_text(raw_desc)
+            stars_today = self._parse_stars_today(raw_desc)
             candidates.append({
                 "full_name": full_name,
                 "title": title,
                 "description": desc,
                 "link": link,
+                "rank": rank,
+                "stars_today": stars_today,
             })
 
         if not candidates:
@@ -152,6 +164,7 @@ class GitHubTrendingSource(BaseSource):
                 deduped_count += 1
                 continue
 
+            rank = c["rank"]
             item = RawItem(
                 source_type=SourceType.GITHUB,
                 source_id=f"github:{full_name}",
@@ -160,7 +173,13 @@ class GitHubTrendingSource(BaseSource):
                 url=c["link"],
                 author=full_name.split("/")[0],
                 published_at=datetime.now(tz=timezone.utc),
-                metadata={},
+                score=c["stars_today"] or max(1, 80 - rank),
+                metadata={
+                    "original_url": c["link"],
+                    "feed_rank": rank,
+                    "stars_today": c["stars_today"],
+                    "repo_description": c["description"][:500],
+                },
             )
             items.append(item)
 

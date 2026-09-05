@@ -9,6 +9,7 @@ from langgraph.graph import END, StateGraph
 from src.agents.cleaner import cleaner_node
 from src.agents.collector import collector_node
 from src.agents.dedup import dedup_node
+from src.agents.enricher import enricher_node
 from src.agents.extractor import extractor_node
 from src.agents.memory_updater import update_memory_node
 from src.agents.reviewer import reviewer_node
@@ -26,7 +27,7 @@ async def load_schedule_node(state: PipelineState) -> dict:
     """加载调度配置，决定本次运行采集哪些数据源"""
     sources = state.get("sources_config")
     if not sources:
-        sources = ["reddit", "hackernews", "huggingface"]
+        sources = ["hackernews", "github", "huggingface"]
         # 配置 PRODUCTHUNT_API_TOKEN 后可加入: sources.append("producthunt")
 
     run_id = state.get("run_id") or str(uuid4())[:8]
@@ -55,6 +56,7 @@ def build_workflow() -> StateGraph:
     # 注册节点
     workflow.add_node("load_schedule", load_schedule_node)
     workflow.add_node("collector", collector_node)
+    workflow.add_node("enricher", enricher_node)
     workflow.add_node("cleaner", cleaner_node)
     workflow.add_node("dedup", dedup_node)
     workflow.add_node("extractor", extractor_node)
@@ -69,7 +71,8 @@ def build_workflow() -> StateGraph:
     # 定义边
     workflow.set_entry_point("load_schedule")
     workflow.add_edge("load_schedule", "collector")
-    workflow.add_edge("collector", "cleaner")
+    workflow.add_edge("collector", "enricher")
+    workflow.add_edge("enricher", "cleaner")
     workflow.add_edge("cleaner", "dedup")
     workflow.add_edge("dedup", "extractor")
     workflow.add_edge("extractor", "scorer")

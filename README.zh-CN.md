@@ -111,6 +111,8 @@ output/
 
 ### 🟢 Reddit
 
+> ⚠️ Reddit 默认关闭。企业网络常拦截 `reddit.com`。需要时在 `.env` 设 `ENABLE_REDDIT=true`，或命令行：`python scripts/run_pipeline.py reddit hackernews github huggingface`。
+
 **采集思路**：通过 Reddit 官方 RSS feed 获取指定子版块的热门帖子（`/r/{subreddit}/hot.rss`），无需任何 API Key。
 
 **过滤机制（两级）**：
@@ -393,6 +395,7 @@ MAX_ITEMS_PER_RUN=50       # 每次运行最多处理条数
 MAX_ITEMS_PER_SOURCE=15    # 每个数据源最多入选条数
 ARXIV_MAX_ITEMS=5          # ArXiv 单独上限（避免论文占比过高）
 TOP_K_FEATURED=10          # 精选条目数量
+ENABLE_REDDIT=false        # 默认关闭 Reddit；需要时改为 true
 SCORING_PROFILE=tech-news  # 评分规则集名称；auto 会由 LLM 自动匹配
 SCORING_BATCH_SIZE=10      # 每次评分的资讯条数
 SCORING_MAX_ITEMS=20       # 通过阈值和分类配额后的总上限

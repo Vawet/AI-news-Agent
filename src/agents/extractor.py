@@ -17,7 +17,9 @@ logger = logging.getLogger(__name__)
 EXTRACTION_PROMPT = """You are an AI news analyst. Extract structured information from the following news item.
 
 Title: {title}
-Content: {content}
+Official summary / abstract: {official_summary}
+Content brief: {content}
+Community discussion: {community}
 Source: {source_type}
 URL: {url}
 Platform Score: {platform_score}
@@ -127,12 +129,15 @@ def _fallback_extract(item: CleanedItem) -> ExtractedItem:
 
 async def _extract_one(llm: ChatOpenAI, item: CleanedItem) -> ExtractedItem:
     """用 LLM 提取单条新闻的结构化信息"""
+    meta = getattr(item, "metadata", {}) or {}
     prompt = EXTRACTION_PROMPT.format(
         title=item.title,
-        content=item.content[:1000],  # 截断避免上下文过长
+        official_summary=(meta.get("official_summary") or item.content or "")[:2000],
+        content=(meta.get("full_content") or item.content)[:2500],
+        community=(meta.get("community_summary") or "")[:1200],
         source_type=item.source_type.value,
         url=item.url,
-        platform_score=item.quality_score if hasattr(item, 'quality_score') else 0,
+        platform_score=item.platform_score,
     )
 
     try:

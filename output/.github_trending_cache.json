@@ -36,19 +36,17 @@
   ],
   "2026-09-05": [
     "mattpocock/skills",
-    "NousResearch/hermes-agent",
     "DietrichGebert/ponytail",
-    "anthropics/skills",
     "affaan-m/ECC",
-    "JuliusBrussee/caveman",
+    "anthropics/skills",
     "blader/humanizer",
-    "google-research/timesfm",
-    "addyosmani/agent-skills",
+    "NousResearch/hermes-agent",
+    "JuliusBrussee/caveman",
     "magnitudedev/magnitude",
-    "Imbad0202/academic-research-skills",
-    "Gitlawb/openclaude",
     "debpalash/VoiceStudio",
-    "f/prompts.chat",
-    "obra/superpowers"
+    "google-research/timesfm",
+    "radixark/miles",
+    "anomalyco/opencode",
+    "cathrynlavery/diagram-design"
   ]
 }

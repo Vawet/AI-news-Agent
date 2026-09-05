@@ -91,10 +91,12 @@ class HackerNewsSource(BaseSource):
             hn_url = entry.get("comments", "")
             original_url = entry.get("link", "")
             score = self._parse_score(entry)
+            comments = self._parse_comments(entry)
+            story_id = hn_url.split("=")[-1] if "id=" in hn_url else entry.get("id", "")
 
             item = RawItem(
                 source_type=SourceType.HACKERNEWS,
-                source_id=hn_url.split("=")[-1] if "id=" in hn_url else entry.get("id", ""),
+                source_id=str(story_id),
                 title=entry.get("title", ""),
                 content=entry.get("summary", ""),
                 url=original_url,
@@ -105,7 +107,8 @@ class HackerNewsSource(BaseSource):
                     "hn_url": hn_url,
                     "original_url": original_url,
                     "points": score,
-                    "num_comments": self._parse_comments(entry),
+                    "num_comments": comments,
+                    "feed_rank": idx + 1,
                 },
             )
             items.append(item)

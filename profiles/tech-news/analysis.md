@@ -16,7 +16,8 @@ current AI Agent development, not how popular it is.
 
 ## Evaluation dimensions
 
-Evaluate all seven dimensions:
+Evaluate all seven dimensions using the official summary, content brief, community
+discussion, source authority, and engagement context together:
 1. Technical depth
 2. Novelty
 3. Industry impact
@@ -24,6 +25,10 @@ Evaluate all seven dimensions:
 5. Relevance to AI Agent development
 6. Strength of evidence
 7. Quality of community discussion
+
+Do not score from the title alone. Prefer concrete claims in the official summary
+and content brief. Treat engagement numbers and ranking as context, not a bonus.
+Use community excerpts to judge consensus, controversy, and discussion quality.
 
 Prioritize concrete value for agent builders, including:
 - New agent architectures, orchestration patterns, memory, planning, tool use, and multi-agent systems

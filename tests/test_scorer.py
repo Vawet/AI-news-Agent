@@ -32,17 +32,28 @@ def test_builtin_tech_news_profile_loads():
     assert "AI Agent development" in profile.analysis_prompt
 
 
-def test_payload_uses_shorter_limit_when_comments_exist():
+def test_payload_uses_structured_briefs_not_raw_800_cut():
     item = _item("1", 8, "Agents", "Title", "https://example.com/1")
-    item.content = "x" * 1200
+    item.content = "x" * 5000
     item.platform_score = 123
-    item.metadata = {"num_comments": 5, "upvote_ratio": 0.9}
+    item.metadata = {
+        "num_comments": 5,
+        "upvote_ratio": 0.9,
+        "official_summary": "Official abstract " * 40,
+        "full_content": "BODY" * 2000,
+        "community_summary": "Top comments agree this matters for agents.",
+        "github_repo": "org/repo",
+    }
 
     payload = _item_payload(0, item)
 
-    assert len(payload["content"]) == 800
+    assert "content" not in payload
+    assert payload["content_brief"].startswith("BODY")
+    assert len(payload["content_brief"]) == 2500
+    assert payload["official_summary"].startswith("Official abstract")
+    assert payload["community"].startswith("Top comments")
     assert payload["engagement_context"]["platform_score"] == 123
-    assert payload["engagement_context"]["upvote_ratio"] == 0.9
+    assert payload["links"]["github_repo"] == "org/repo"
 
 
 def test_invalid_json_is_not_salvaged():
