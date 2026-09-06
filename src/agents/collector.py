@@ -6,11 +6,13 @@ from datetime import datetime, timezone
 
 from src.config import settings
 from src.graph.state import PipelineState
-from src.models import RawItem
+from src.models import RawItem, SourceType
+from src.sources.anthropic import AnthropicNewsSource
 from src.sources.arxiv import ArxivSource
 from src.sources.github import GitHubTrendingSource
 from src.sources.hackernews import HackerNewsSource
 from src.sources.huggingface_papers import HuggingFacePapersSource
+from src.sources.huggingface_spaces import HuggingFaceSpacesSource
 from src.sources.producthunt import ProductHuntSource
 from src.sources.reddit import RedditRSSSource
 from src.sources.rss_generic import GenericRSSSource, get_ai_blog_sources
@@ -26,6 +28,8 @@ SOURCE_REGISTRY = {
     "arxiv": lambda: [ArxivSource()],
     "github": lambda: [GitHubTrendingSource()],
     "huggingface": lambda: [HuggingFacePapersSource(min_upvotes=settings.hf_papers_min_upvotes)],
+    "huggingface_spaces": lambda: [HuggingFaceSpacesSource()],
+    "anthropic": lambda: [AnthropicNewsSource()],
     "producthunt": lambda: [ProductHuntSource(
         min_votes=settings.producthunt_min_votes,
         api_token=settings.producthunt_api_token or None,
@@ -74,17 +78,41 @@ async def _fetch_one(source, since: datetime | None) -> list[RawItem]:
         return []
 
 
+def _quota_bucket(source_id: str) -> str:
+    """RSS 子源按完整 source_id（rss:feed_name）分桶，其余按类型前缀。"""
+    if source_id.startswith("rss:"):
+        return source_id
+    return source_id.split(":")[0]
+
+
+def _quota_limits(bucket: str) -> tuple[int, int]:
+    """返回 (保底条数, 上限)。"""
+    min_per_src = settings.min_items_per_source
+    max_per_src = settings.max_items_per_source
+    if bucket == "arxiv":
+        return min_per_src, settings.arxiv_max_items
+    if bucket.startswith("rss:"):
+        return settings.min_items_per_rss_feed, settings.max_items_per_rss_feed
+    return min_per_src, max_per_src
+
+
+def _item_quota_bucket(item: RawItem) -> str:
+    if item.source_type == SourceType.RSS:
+        feed = (item.metadata or {}).get("feed_name")
+        if feed:
+            return f"rss:{feed}"
+    return item.source_type.value
+
+
 def _smart_select(items_by_source: dict[str, list[RawItem]]) -> list[RawItem]:
     """智能选择策略：每源保底配额 + 按质量竞争剩余名额
 
     1. 每个源内按 score 降序排列
-    2. 每个源先取 min_items_per_source 条（保底，不超过 max_items_per_source）
+    2. 每个源先取 min 条（RSS 按 feed_name 保底，避免新博客被挤掉）
     3. 剩余名额从所有源的剩余条目中按 score 竞争
     4. 总数不超过 max_items_per_run
     """
     max_total = settings.max_items_per_run
-    min_per_src = settings.min_items_per_source
-    max_per_src = settings.max_items_per_source
 
     selected: list[RawItem] = []
     remaining_pool: list[RawItem] = []
@@ -93,23 +121,21 @@ def _smart_select(items_by_source: dict[str, list[RawItem]]) -> list[RawItem]:
     for src_id, items in items_by_source.items():
         # 源内按 score 降序
         items.sort(key=lambda x: x.score, reverse=True)
-        # ArXiv 单独上限，避免论文占比过高
-        src_max = settings.arxiv_max_items if src_id == "arxiv" else max_per_src
+        min_q, src_max = _quota_limits(src_id)
         # 保底配额
-        guaranteed = items[:min(min_per_src, src_max, len(items))]
+        guaranteed = items[: min(min_q, src_max, len(items))]
         selected.extend(guaranteed)
         source_counts[src_id] = len(guaranteed)
         # 剩余进入竞争池（受 src_max 约束）
-        remaining_pool.extend(items[len(guaranteed):])
+        remaining_pool.extend(items[len(guaranteed) :])
 
     # 竞争剩余名额
     remaining_pool.sort(key=lambda x: x.score, reverse=True)
     for item in remaining_pool:
         if len(selected) >= max_total:
             break
-        # 检查该源是否已达上限（arxiv 用单独上限）
-        src_key = item.source_type.value
-        src_ceil = settings.arxiv_max_items if src_key == "arxiv" else max_per_src
+        src_key = _item_quota_bucket(item)
+        _, src_ceil = _quota_limits(src_key)
         if source_counts.get(src_key, 0) >= src_ceil:
             continue
         selected.append(item)
@@ -141,7 +167,7 @@ async def collector_node(state: PipelineState) -> dict:
     items_by_source: dict[str, list[RawItem]] = {}
     total_fetched = 0
     for source, items in zip(sources, results):
-        src_key = source.source_id.split(":")[0]  # "reddit:LocalLLaMA" → "reddit"
+        src_key = _quota_bucket(source.source_id)  # "rss:openai_blog" 保持子源；"reddit:x" → "reddit"
         items_by_source.setdefault(src_key, []).extend(items)
         total_fetched += len(items)
 

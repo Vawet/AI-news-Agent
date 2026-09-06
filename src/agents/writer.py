@@ -171,6 +171,7 @@ def _normalize_source_links(markdown: str) -> str:
         "arxiv.org": "arxiv",
         "github.com": "github",
         "huggingface.co": "huggingface",
+        "anthropic.com": "anthropic",
     }
 
     def _get_source(url: str) -> str:

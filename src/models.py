@@ -15,6 +15,8 @@ class SourceType(str, Enum):
     TWITTER = "twitter"
     RSS = "rss"
     HUGGINGFACE = "huggingface"
+    HUGGINGFACE_SPACES = "huggingface_spaces"
+    ANTHROPIC = "anthropic"
     PRODUCTHUNT = "producthunt"
 
 

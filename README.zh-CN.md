@@ -5,7 +5,7 @@
 基于 LangGraph 的多 Agent AI 新闻聚合系统。自动从多个数据源采集、清洗、语义去重、LLM 提取结构化信息，生成中英文双语 AI 新闻简报（日报 / 周报），支持多渠道发布。
 
 **特点：**
-- **8 大数据源**：Reddit、Hacker News、ArXiv、GitHub Trending、RSS、Twitter/X、HuggingFace Papers、Product Hunt
+- **10+ 大数据源**：Reddit、Hacker News、ArXiv、GitHub Trending、RSS 博客、HuggingFace Papers / Spaces、Anthropic News、Twitter/X、Product Hunt
 - **LLM 驱动**：AI 相关性过滤、结构化提取、中文标题生成、英文翻译
 - **智能去重**：标题去重 + pgvector 语义去重 + 事件级合并
 - **零成本部署**：GitHub Actions 定时运行 + Neon 免费 PostgreSQL + GitHub Pages
@@ -80,7 +80,7 @@ python scripts/run_pipeline.py reddit hackernews arxiv
 python scripts/run_pipeline.py twitter
 ```
 
-可用数据源标识：`reddit` `hackernews` `arxiv` `github` `rss` `huggingface` `producthunt` `twitter`
+可用数据源标识：`reddit` `hackernews` `arxiv` `github` `rss` `huggingface` `huggingface_spaces` `anthropic` `producthunt` `twitter`
 
 ### 4. 查看输出
 
@@ -104,6 +104,8 @@ output/
 | GitHub Trending | RSS (社区维护) | ❌ | ✅ |
 | RSS (AI 博客) | RSS / Atom | ❌ | ✅ |
 | HuggingFace Papers | HTTP API | ❌ | ✅ |
+| HuggingFace Spaces | HTTP API | ❌ | ✅ |
+| Anthropic News | Sitemap / HTML | ❌ | ✅ |
 | Product Hunt | GraphQL API | ⚠️ 推荐 | ❌ |
 | Twitter/X | Firecrawl + Nitter | ✅ | ❌ |
 
@@ -200,24 +202,53 @@ HN_MIN_SCORE=30
 
 **采集思路**：通过标准 RSS/Atom feed 直接订阅各大 AI 公司/项目的官方博客。内容天然为 AI 相关，无需 LLM 过滤。
 
-**内置 4 个源**：
-- OpenAI Blog
-- DeepMind Blog
-- HuggingFace Blog
-- PyTorch Blog
+**内置 12 个源**（OpenAI 已校正为 `https://openai.com/news/rss.xml`）：
+- OpenAI News、DeepMind Blog、HuggingFace Blog、PyTorch Blog
+- AWS Blog、Dev.to AI、Towards Data Science
+- InfoQ 中文、掘金（全站 feed，靠现有 AI filter / scorer 筛选）
+- ByteByteGo、Developers Digest、Kenashe
+
+采集器对 RSS **按 `feed_name` 保底**（`MIN_ITEMS_PER_RSS_FEED`，默认 2 条），避免博客变多后新源被挤掉。
 
 **配置项**：
 
 | 环境变量 | 默认值 | 说明 |
 |----------|--------|------|
-| `RSS_FEEDS` | 空（使用内置源） | 自定义 RSS 源，格式 `name1=url1,name2=url2` |
+| `RSS_FEEDS` | 空（使用内置源） | 追加自定义 RSS 源，格式 `name1=url1,name2=url2` |
+| `MIN_ITEMS_PER_RSS_FEED` | `2` | 每个 RSS 子源保底条数 |
+| `MAX_ITEMS_PER_RSS_FEED` | `3` | 每个 RSS 子源上限 |
 
 ```bash
 # 添加自定义 RSS 源（会叠加在内置源之上）
-RSS_FEEDS=anthropic=https://www.anthropic.com/rss.xml,mistral=https://mistral.ai/feed
+RSS_FEEDS=mistral=https://mistral.ai/feed
 ```
 
-> 💡 **开箱即用**：无需配置，默认订阅 4 个 AI 官方博客。可通过 `RSS_FEEDS` 追加任意 RSS/Atom 源。
+> 💡 **开箱即用**：无需配置。Anthropic 没有 RSS，走独立源 `anthropic`，不要填假的 `/rss.xml`。
+
+---
+
+### 🟢 HuggingFace Spaces
+
+**采集思路**：`GET https://huggingface.co/api/spaces?limit=30`，按 `trendingScore` / likes 排序。无需 Token。
+
+---
+
+### 🟢 Anthropic News
+
+**采集思路**：Anthropic 无 RSS。优先解析 `sitemap.xml` 中的 `/news/` 路径，失败则抓 `https://www.anthropic.com/news` 列表链接。条目仅标题 + URL + 发布时间，正文交给现有 enricher。
+
+---
+
+### ⚪ 暂未接入
+
+以下站点没有稳定公开 RSS/API，或需要无头浏览器/反爬，当前**暂缓**（不引入 SerpAPI / Browserless，控制成本）：
+
+- 机器之心
+- The Batch（DeepLearning.AI 邮件周刊）
+- Futurepedia / AITools 类目录站
+- InfoQ AI 专题独立频道（全站 InfoQ 中文 feed 已在 RSS 内置源中）
+
+若以后要做，应单独做「HTML 列表源」基类，而不是塞进 `GenericRSSSource`。
 
 ---
 

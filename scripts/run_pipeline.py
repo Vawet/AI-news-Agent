@@ -14,7 +14,15 @@ from src.graph.workflow import compile_graph
 
 def _default_sources() -> list[str]:
     """根据配置动态决定启用哪些数据源"""
-    sources = ["hackernews", "github", "huggingface", "arxiv", "rss"]
+    sources = [
+        "hackernews",
+        "github",
+        "huggingface",
+        "huggingface_spaces",
+        "arxiv",
+        "rss",
+        "anthropic",
+    ]
     if settings.enable_reddit:
         sources.insert(0, "reddit")
     # Twitter / Product Hunt 成本高，默认不启用；需要时命令行传入 twitter / producthunt

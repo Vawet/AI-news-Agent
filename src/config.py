@@ -82,6 +82,8 @@ class Settings(BaseSettings):
     max_items_per_source: int = 15
     arxiv_max_items: int = 5  # ArXiv 单独限制，避免论文占比过高
     min_items_per_source: int = 3
+    min_items_per_rss_feed: int = 2  # 每个 RSS 子源保底，避免博客变多后被挤掉
+    max_items_per_rss_feed: int = 3
     top_k_featured: int = 10
     min_importance_score: int = 3  # 低于此分数的条目不纳入日报（过滤非新闻内容）
     min_items_to_write: int = 5

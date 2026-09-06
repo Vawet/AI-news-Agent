@@ -5,7 +5,7 @@
 A multi-agent AI news aggregation system built on LangGraph. Automatically collects, cleans, deduplicates, extracts structured information via LLM, and generates bilingual (Chinese & English) AI news briefings (daily / weekly) with multi-channel publishing.
 
 **Features:**
-- **8 data sources**: Reddit, Hacker News, ArXiv, GitHub Trending, RSS, Twitter/X, HuggingFace Papers, Product Hunt
+- **10+ data sources**: Reddit, Hacker News, ArXiv, GitHub Trending, RSS blogs, HuggingFace Papers & Spaces, Anthropic News, Twitter/X, Product Hunt
 - **LLM-powered**: AI relevance filtering, structured extraction, Chinese title generation, English translation
 - **Smart dedup**: Title matching + pgvector semantic dedup + event-level merging
 - **Zero-cost deploy**: GitHub Actions cron + Neon free PostgreSQL + GitHub Pages
@@ -80,7 +80,7 @@ python scripts/run_pipeline.py reddit hackernews arxiv
 python scripts/run_pipeline.py twitter
 ```
 
-Available sources: `reddit` `hackernews` `arxiv` `github` `rss` `huggingface` `producthunt` `twitter`
+Available sources: `reddit` `hackernews` `arxiv` `github` `rss` `huggingface` `huggingface_spaces` `anthropic` `producthunt` `twitter`
 
 ### 4. Output
 
@@ -104,6 +104,8 @@ Each data source has its own collection strategy, filtering pipeline, and config
 | GitHub Trending | RSS (community) | ❌ | ✅ |
 | RSS (AI Blogs) | RSS / Atom | ❌ | ✅ |
 | HuggingFace Papers | HTTP API | ❌ | ✅ |
+| HuggingFace Spaces | HTTP API | ❌ | ✅ |
+| Anthropic News | Sitemap / HTML | ❌ | ✅ |
 | Product Hunt | GraphQL API | ⚠️ Recommended | ❌ |
 | Twitter/X | Firecrawl + Nitter | ✅ | ❌ |
 
@@ -198,24 +200,51 @@ HN_MIN_SCORE=30
 
 **How it works**: Subscribes to official blogs from major AI companies/projects via standard RSS/Atom feeds. Content is inherently AI-related — no LLM filtering needed.
 
-**4 built-in sources**:
-- OpenAI Blog
-- DeepMind Blog
-- HuggingFace Blog
-- PyTorch Blog
+**12 built-in feeds** (OpenAI URL is `https://openai.com/news/rss.xml`):
+- OpenAI News, DeepMind Blog, HuggingFace Blog, PyTorch Blog
+- AWS Blog, Dev.to AI, Towards Data Science
+- InfoQ 中文, 掘金 (full-site feeds; AI relevance via existing filter/scorer)
+- ByteByteGo, Developers Digest, Kenashe
+
+Collector keeps a **per-feed floor** (`MIN_ITEMS_PER_RSS_FEED`, default 2) so extra blogs are not squeezed out of the shared RSS quota.
 
 **Config**:
 
 | Env Variable | Default | Description |
 |-------------|---------|-------------|
-| `RSS_FEEDS` | empty (uses built-in) | Custom RSS feeds, format: `name1=url1,name2=url2` |
+| `RSS_FEEDS` | empty (uses built-in) | Extra RSS feeds, format: `name1=url1,name2=url2` |
+| `MIN_ITEMS_PER_RSS_FEED` | `2` | Guaranteed items per RSS feed |
+| `MAX_ITEMS_PER_RSS_FEED` | `3` | Cap per RSS feed |
 
 ```bash
 # Add custom RSS feeds (stacked on top of built-in sources)
-RSS_FEEDS=anthropic=https://www.anthropic.com/rss.xml,mistral=https://mistral.ai/feed
+RSS_FEEDS=mistral=https://mistral.ai/feed
 ```
 
-> 💡 **Works out of the box**: No config needed. Subscribes to 4 AI blogs by default. Add any RSS/Atom feed via `RSS_FEEDS`.
+> 💡 **Works out of the box**: No config needed. Anthropic has no RSS — it is a dedicated source (`anthropic`), not an RSS URL.
+
+---
+
+### 🟢 HuggingFace Spaces
+
+**How it works**: `GET https://huggingface.co/api/spaces?limit=30`, ranked by `trendingScore` / likes. No token.
+
+---
+
+### 🟢 Anthropic News
+
+**How it works**: Anthropic has no RSS. The dedicated source parses `sitemap.xml` for `/news/` URLs, then falls back to the HTML list at `https://www.anthropic.com/news`. Titles + URLs + dates only; article body is filled by the existing enricher.
+
+---
+
+### ⚪ Not connected yet
+
+These sites have no stable public RSS/API (or need a headless browser / anti-bot), so they are deferred to keep cost down (no SerpAPI / Browserless):
+
+- 机器之心 (JiQizhixin)
+- The Batch (DeepLearning.AI newsletter)
+- Futurepedia / AITools-style directories
+- A dedicated InfoQ AI-topic channel (the full-site InfoQ CN feed is already in RSS)
 
 ---
 
