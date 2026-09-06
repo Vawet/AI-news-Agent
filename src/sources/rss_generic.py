@@ -20,7 +20,6 @@ AI_BLOG_FEEDS = {
     "deepmind_blog": "https://deepmind.google/blog/rss.xml",
     "huggingface_blog": "https://huggingface.co/blog/feed.xml",
     "pytorch_blog": "https://pytorch.org/blog/feed.xml",
-    "ollama_blog": "https://ollama.com/blog/rss",
 }
 
 

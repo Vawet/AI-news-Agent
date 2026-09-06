@@ -198,12 +198,11 @@ HN_MIN_SCORE=30
 
 **How it works**: Subscribes to official blogs from major AI companies/projects via standard RSS/Atom feeds. Content is inherently AI-related — no LLM filtering needed.
 
-**5 built-in sources**:
+**4 built-in sources**:
 - OpenAI Blog
 - DeepMind Blog
 - HuggingFace Blog
 - PyTorch Blog
-- Ollama Blog
 
 **Config**:
 
@@ -216,7 +215,7 @@ HN_MIN_SCORE=30
 RSS_FEEDS=anthropic=https://www.anthropic.com/rss.xml,mistral=https://mistral.ai/feed
 ```
 
-> 💡 **Works out of the box**: No config needed. Subscribes to 5 AI blogs by default. Add any RSS/Atom feed via `RSS_FEEDS`.
+> 💡 **Works out of the box**: No config needed. Subscribes to 4 AI blogs by default. Add any RSS/Atom feed via `RSS_FEEDS`.
 
 ---
 

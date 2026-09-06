@@ -73,7 +73,9 @@ class TestGenericRSSSource:
 
     def test_ai_blog_sources(self):
         sources = get_ai_blog_sources()
-        assert len(sources) > 0
+        ids = [s.source_id for s in sources]
+        assert "rss:openai_blog" in ids
+        assert "rss:ollama_blog" not in ids
         assert all(isinstance(s, GenericRSSSource) for s in sources)
 
 

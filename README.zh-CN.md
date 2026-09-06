@@ -200,12 +200,11 @@ HN_MIN_SCORE=30
 
 **采集思路**：通过标准 RSS/Atom feed 直接订阅各大 AI 公司/项目的官方博客。内容天然为 AI 相关，无需 LLM 过滤。
 
-**内置 5 个源**：
+**内置 4 个源**：
 - OpenAI Blog
 - DeepMind Blog
 - HuggingFace Blog
 - PyTorch Blog
-- Ollama Blog
 
 **配置项**：
 
@@ -218,7 +217,7 @@ HN_MIN_SCORE=30
 RSS_FEEDS=anthropic=https://www.anthropic.com/rss.xml,mistral=https://mistral.ai/feed
 ```
 
-> 💡 **开箱即用**：无需配置，默认订阅 5 个 AI 官方博客。可通过 `RSS_FEEDS` 追加任意 RSS/Atom 源。
+> 💡 **开箱即用**：无需配置，默认订阅 4 个 AI 官方博客。可通过 `RSS_FEEDS` 追加任意 RSS/Atom 源。
 
 ---
 
