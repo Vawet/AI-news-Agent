@@ -14,20 +14,13 @@ logger = logging.getLogger(__name__)
 
 USER_AGENT = "AI-News-Agent/1.0 (RSS Reader)"
 
-# 预置的 AI 博客 RSS 源（AWS/InfoQ/掘金等杂源靠现有 AI filter + scorer 筛选）
+# 预置的 AI 博客 RSS 源（仅保留官方/开源/社区纯净源，已剔除 AWS/InfoQ/掘金/ByteByteGo/TDS/Developers Digest/Kenashe 等 PR 风险高的源）
 AI_BLOG_FEEDS = {
     "openai_blog": "https://openai.com/news/rss.xml",
     "deepmind_blog": "https://deepmind.google/blog/rss.xml",
     "huggingface_blog": "https://huggingface.co/blog/feed.xml",
     "pytorch_blog": "https://pytorch.org/blog/feed.xml",
-    "aws_blog": "https://aws.amazon.com/blogs/aws/feed/",
     "devto_ai": "https://dev.to/feed/tag/ai",
-    "towards_data_science": "https://towardsdatascience.com/feed/",
-    "infoq_cn": "https://www.infoq.cn/feed",
-    "juejin": "https://juejin.cn/rss",
-    "bytebytego": "https://blog.bytebytego.com/feed",
-    "developers_digest": "https://www.developersdigest.tech/feed.xml",
-    "kenashe": "https://kenashe.ai/rss.xml",
 }
 
 
