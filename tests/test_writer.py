@@ -62,3 +62,40 @@ def test_annotate_matches_line_by_origin_url():
 
     assert result.endswith("— https://example.com/post")
     assert "**AI Score: 8.4/10**" in result
+
+
+def test_fallback_dev_markdown_contains_required_sections():
+    from src.agents.writer import _build_fallback_dev_markdown
+
+    items = [
+        ExtractedItem(
+            id="1",
+            source_type=SourceType.GITHUB,
+            title="Claude Code config",
+            content="body",
+            url="https://github.com/example/cc",
+            summary="A config repo",
+            ai_score=8.0,
+            ai_reason="Useful for agent orchestration",
+            scoring_profile="tech-news",
+        ),
+        ExtractedItem(
+            id="2",
+            source_type=SourceType.ARXIV,
+            title="BCIT post-training experience transfer",
+            content="body",
+            url="https://arxiv.org/abs/123",
+            summary="Post-training experience replay for LLM",
+            ai_score=7.8,
+            ai_reason="About LLM post-training",
+            scoring_profile="tech-news",
+        ),
+    ]
+    result = _build_fallback_dev_markdown(items, "2026-09-05")
+
+    assert "【人话版】" in result
+    assert "【开发能用上】" in result
+    assert "## 开发趋势总结" in result
+    assert "## 已筛除条目说明" in result
+    assert "BCIT post-training experience transfer" not in result
+    assert "1 条" in result

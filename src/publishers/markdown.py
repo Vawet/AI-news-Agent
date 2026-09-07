@@ -104,6 +104,23 @@ async def publish_node(state: PipelineState) -> dict:
                 en_content = en_fm + en_content
             filepath.write_text(en_content, encoding="utf-8")
 
+    # 1.6 保存开发落地版（如果有）
+    if article.markdown_content_dev:
+        dev_filename = f"ai-daily-{article.date}-dev.md"
+        dev_filepath = output_dir / dev_filename
+        dev_desc = article.description_dev or article.description_zh or article.description
+        dev_desc_escaped = dev_desc.replace('"', '\\"')
+        dev_frontmatter = (
+            f'---\n'
+            f'title: "AI 日报（开发落地版） — {article.date}"\n'
+            f'description: "{dev_desc_escaped}"\n'
+            f'lang: "zh-dev"\n'
+            f'pairSlug: "ai-daily-{article.date}"\n'
+            f'---\n\n'
+        )
+        dev_filepath.write_text(dev_frontmatter + article.markdown_content_dev, encoding="utf-8")
+        logger.info(f"Dev version saved: {dev_filepath}")
+
     # 2. 尝试发送邮件
     await _publish_newsletter(article)
 

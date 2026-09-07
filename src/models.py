@@ -114,4 +114,8 @@ class GeneratedArticle(BaseModel):
     sections: list[ArticleSection] = Field(default_factory=list)
     markdown_content: str = ""
     markdown_content_zh: str = ""
+    markdown_content_dev: str = ""
+    description_dev: str = Field(default="", description="开发落地版摘要，用于站点列表展示")
+    markdown_content_dev: str = ""
+    description_dev: str = Field(default="", description="开发落地版摘要，用于站点列表展示")
     item_count: int = 0
