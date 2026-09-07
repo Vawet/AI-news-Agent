@@ -28,8 +28,11 @@ def _item(
 def test_builtin_tech_news_profile_loads():
     profile = load_profiles()["tech-news"]
     assert profile.threshold == 7.0
-    assert "Agent Examples" in profile.category_groups
-    assert "AI Agent development" in profile.analysis_prompt
+    assert profile.category_groups["Model Capabilities"] == 8
+    assert profile.category_groups["Harness Methodology"] == 7
+    assert profile.category_groups["AI Insights"] == 4
+    assert profile.category_groups["Open Source"] == 2
+    assert "Harness methodology" in profile.analysis_prompt
 
 
 def test_payload_uses_structured_briefs_not_raw_800_cut():

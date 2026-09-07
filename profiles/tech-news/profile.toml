@@ -1,13 +1,11 @@
 name = "tech-news"
-description = "面向 AI Agent 开发者的技术资讯评分规则"
+description = "面向 AI Agent 开发者的技术资讯评分规则（优先级：模型能力 > Harness 方法论 > 大厂一线 AI 认知；开源项目最多 2 条）"
 threshold = 7.0
 max_items = 20
 
 [category_groups]
-"Agent Frameworks" = 5
-"Agent Examples" = 5
-"Models & Research" = 4
-"Developer Tools" = 4
-"Infrastructure" = 3
-"Industry & Policy" = 2
+"Model Capabilities" = 8
+"Harness Methodology" = 7
+"AI Insights" = 4
+"Open Source" = 2
 "Other" = 2
