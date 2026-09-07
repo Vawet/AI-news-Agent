@@ -1,13 +1,4 @@
 {
-  "2026-09-03": [
-    "Imbad0202/academic-research-skills",
-    "THU-MAIC/OpenMAIC",
-    "jingyaogong/minimind",
-    "browser-use/video-use",
-    "K-Dense-AI/scientific-agent-skills",
-    "affaan-m/ECC",
-    "unclecode/crawl4ai"
-  ],
   "2026-09-04": [
     "google-research/timesfm",
     "DietrichGebert/ponytail",
@@ -51,5 +42,15 @@
     "blader/humanizer",
     "WorldFlowAI/everything-claude-code",
     "magnitudedev/magnitude"
+  ],
+  "2026-09-07": [
+    "affaan-m/ECC",
+    "mattpocock/skills",
+    "cathrynlavery/diagram-design",
+    "NousResearch/hermes-agent",
+    "anomalyco/opencode",
+    "ruvnet/ruflo",
+    "coreyhaines31/marketingskills",
+    "humanlayer/skills"
   ]
 }
