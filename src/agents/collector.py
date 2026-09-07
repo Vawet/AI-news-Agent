@@ -89,6 +89,10 @@ def _quota_limits(bucket: str) -> tuple[int, int]:
     """返回 (保底条数, 上限)。"""
     min_per_src = settings.min_items_per_source
     max_per_src = settings.max_items_per_source
+    if bucket in {"github", "github_trending"}:
+        return 0, settings.github_trending_max_items
+    if bucket == "anthropic" or bucket in {"rss:openai_blog", "rss:deepmind_blog"}:
+        return max(min_per_src, 3), max(max_per_src, 6)
     if bucket == "arxiv":
         return min_per_src, settings.arxiv_max_items
     if bucket.startswith("rss:"):

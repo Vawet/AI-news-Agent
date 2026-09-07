@@ -58,13 +58,15 @@ All brief items as a flat bullet list, no grouping:
 
 Writing rules:
 1. "Top Stories" has only 2-3 items with ### numbered headings, each with 2-3 sentence analysis
-2. "Featured" groups by topic (e.g. "Open Source Models", "AI Safety", "Tools & Frameworks"), items as - **Title** — summary format
+2. "Featured" groups by the editorial pillars when possible: "Model Capabilities", "Harness Methodology", "AI Insights", "Open Source". Items as - **Title** — summary format
 3. "Quick Bites" is a flat list, - **Title** — one sentence format
 4. Every news item MUST visibly include its exact **AI Score: x.x/10**, then [Source-source](url), then the plain origin URL so readers can see the address
 5. Similar news from different sources can be merged
 6. Professional, concise writing for AI practitioners
-7. For Top Stories, use ai_reason to explain why the item matters to Agent developers
-8. Output Markdown directly, no code blocks
+7. For Top Stories, prefer usable model capabilities, harness methods, and official lab cognition for agent builders; use ai_reason to explain why
+8. Recommend at most two GitHub Trending projects; do not pad Open Source with extra repos
+9. Do not feature pre-training, post-training, RLHF, or architecture-training papers
+10. Output Markdown directly, no code blocks
 
 ## Featured Items (AI score ≥ {threshold}, {featured_count} items)
 {featured_json}

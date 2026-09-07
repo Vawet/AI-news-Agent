@@ -1,4 +1,4 @@
-"""Cleaner Agent - 将原始数据标准化为统一格式"""
+"""Cleaner Agent - 将原始数据标准化为统一格式，并按编辑焦点排序"""
 
 import hashlib
 import logging
@@ -7,6 +7,12 @@ from html import unescape
 
 from src.graph.state import PipelineState
 from src.models import CleanedItem, RawItem
+from src.scoring.focus import (
+    annotate_focus,
+    focus_hints,
+    is_official_source,
+    is_training_research,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -24,33 +30,39 @@ def _normalize_whitespace(text: str) -> str:
 
 
 def _compute_quality_score(item: RawItem) -> float:
-    """基于规则的质量评分 (0-1)"""
-    score = 0.3  # 基础分
+    """质量分：官方来源与内容完整度优先，平台热度只作弱信号。"""
+    score = 0.25
 
-    # 标题长度加分
     if 10 < len(item.title) < 200:
         score += 0.1
 
-    # 内容长度加分
     content_len = len(item.content)
     if content_len > 50:
         score += 0.1
     if content_len > 200:
         score += 0.1
 
-    # 平台互动分数加分
-    if item.score > 10:
-        score += 0.1
-    if item.score > 100:
-        score += 0.1
-    if item.score > 500:
+    if is_training_research(item):
+        score -= 0.2
+    elif is_official_source(item):
+        score += 0.3
+    elif item.source_type.value == "github":
+        score += 0.15
+
+    hints = focus_hints(item)
+    if "Model Capabilities" in hints or "Harness Methodology" in hints:
         score += 0.1
 
-    # 有发布时间加分
+    # 热度上限压低，避免高赞闲聊压过官方博客
+    if item.score > 50:
+        score += 0.05
+    if item.score > 200:
+        score += 0.05
+
     if item.published_at:
-        score += 0.1
+        score += 0.05
 
-    return min(score, 1.0)
+    return max(0.0, min(score, 1.0))
 
 
 def _make_id(item: RawItem) -> str:
@@ -63,6 +75,7 @@ def _clean_one(item: RawItem) -> CleanedItem:
     """清洗单条原始数据"""
     title = _normalize_whitespace(_strip_html(item.title))
     content = _normalize_whitespace(_strip_html(item.content))
+    metadata = annotate_focus(item.metadata, item)
 
     return CleanedItem(
         id=_make_id(item),
@@ -75,7 +88,7 @@ def _clean_one(item: RawItem) -> CleanedItem:
         language="en",  # v0.1 暂不做语言检测
         quality_score=_compute_quality_score(item),
         platform_score=item.score,
-        metadata=item.metadata,
+        metadata=metadata,
     )
 
 
@@ -110,7 +123,7 @@ async def cleaner_node(state: PipelineState) -> dict:
     # 清洗
     cleaned = [_clean_one(item) for item in raw_items]
 
-    # 按质量分排序
+    # 按质量分排序（官方 / 焦点内容优先进入后续 LLM 阶段）
     cleaned.sort(key=lambda x: x.quality_score, reverse=True)
 
     # 简单去重

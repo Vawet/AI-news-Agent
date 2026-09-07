@@ -89,6 +89,18 @@ class GitHubTrendingSource(BaseSource):
             return 0
         return int(match.group(1).replace(",", ""))
 
+    @staticmethod
+    def _select_trending(items: list[RawItem], max_items: int) -> list[RawItem]:
+        """Keep the strongest AI trending repos, at most ``max_items``."""
+        ranked = sorted(
+            items,
+            key=lambda item: (
+                -int((item.metadata or {}).get("stars_today") or 0),
+                int((item.metadata or {}).get("feed_rank") or 999),
+            ),
+        )
+        return ranked[: max(0, max_items)]
+
     async def fetch(self, since: datetime | None = None) -> list[RawItem]:
         logger.info(f"Fetching GitHub Trending (RSS: {self.rss_url}) ...")
 
@@ -183,6 +195,8 @@ class GitHubTrendingSource(BaseSource):
             )
             items.append(item)
 
+        items = self._select_trending(items, settings.github_trending_max_items)
+
         # 更新缓存（只缓存 AI 项目）
         cache[today] = today_ai_repos
         self._save_cache(cache)
@@ -190,6 +204,7 @@ class GitHubTrendingSource(BaseSource):
         logger.info(
             f"GitHub Trending: {len(items)} AI projects "
             f"(LLM filtered {len(candidates)} → {len(ai_indices)} AI, "
-            f"cross-day dedup: {deduped_count} repeated)"
+            f"cross-day dedup: {deduped_count} repeated, "
+            f"capped at {settings.github_trending_max_items})"
         )
         return items

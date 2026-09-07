@@ -28,11 +28,13 @@ def _item(
 def test_builtin_tech_news_profile_loads():
     profile = load_profiles()["tech-news"]
     assert profile.threshold == 7.0
-    assert profile.category_groups["Model Capabilities"] == 8
+    assert profile.category_groups["Model Capabilities"] == 6
     assert profile.category_groups["Harness Methodology"] == 7
     assert profile.category_groups["AI Insights"] == 4
     assert profile.category_groups["Open Source"] == 2
-    assert "Harness methodology" in profile.analysis_prompt
+    assert "business ai agent" in profile.analysis_prompt.lower()
+    assert "pre-training" in profile.analysis_prompt.lower()
+    assert "Harness Methodology" in profile.analysis_prompt
 
 
 def test_payload_uses_structured_briefs_not_raw_800_cut():
@@ -57,6 +59,9 @@ def test_payload_uses_structured_briefs_not_raw_800_cut():
     assert payload["community"].startswith("Top comments")
     assert payload["engagement_context"]["platform_score"] == 123
     assert payload["links"]["github_repo"] == "org/repo"
+    assert payload["is_official"] is False
+    assert payload["is_training_research"] is False
+    assert payload["focus_hints"] == []
 
 
 def test_invalid_json_is_not_salvaged():
@@ -83,3 +88,37 @@ def test_selection_applies_threshold_category_cap_and_score_order():
     selected = _select_items(items, {"test": profile})
 
     assert [item.id for item in selected] == ["1", "3"]
+
+
+def test_selection_caps_github_items_at_two():
+    profile = ScoringProfile(
+        name="test",
+        description="test",
+        threshold=7.0,
+        max_items=10,
+        category_groups={"Open Source": 5, "Other": 5},
+        analysis_prompt="",
+        match_prompt="",
+    )
+    titles = [
+        "vLLM ships new paged attention kernel",
+        "Hermes agent harness adds persistent memory",
+        "llama.cpp Vulkan backend rewrite",
+        "SGLang speculative decoding for MoE",
+    ]
+    items = []
+    for idx, title in enumerate(titles):
+        item = _item(
+            str(idx),
+            9 - idx * 0.1,
+            "Open Source",
+            title,
+            f"https://github.com/org/repo-{idx}",
+        )
+        item.source_type = SourceType.GITHUB
+        items.append(item)
+
+    selected = _select_items(items, {"test": profile})
+
+    assert len(selected) == 2
+    assert [item.id for item in selected] == ["0", "1"]

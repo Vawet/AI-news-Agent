@@ -71,5 +71,24 @@ def test_smart_select_rss_per_feed_floor():
     kenashe_count = sum(1 for i in selected if i.metadata["feed_name"] == "kenashe")
     openai_count = sum(1 for i in selected if i.metadata["feed_name"] == "openai_blog")
     assert kenashe_count >= 2
-    assert openai_count <= 3
+    assert openai_count >= 3
+    assert openai_count <= 6
+
+
+def _github_item(name: str, stars_today: int) -> RawItem:
+    return RawItem(
+        source_type=SourceType.GITHUB,
+        source_id=f"github:{name}",
+        title=name,
+        score=stars_today,
+        metadata={"feed_name": "unused"},
+    )
+
+
+def test_smart_select_caps_github_at_two():
+    items_by_source = {
+        "github_trending": [_github_item(f"org/repo-{i}", 100 - i) for i in range(5)],
+    }
+    selected = _smart_select(items_by_source)
+    assert len(selected) == 2
 

@@ -63,6 +63,26 @@ class TestGitHubSource:
         assert source.source_id == "github_trending"
         assert source.default_interval == 14400
 
+    def test_select_trending_keeps_top_two_by_stars(self):
+        from src.models import RawItem, SourceType
+
+        def repo(name: str, stars: int, rank: int) -> RawItem:
+            return RawItem(
+                source_type=SourceType.GITHUB,
+                source_id=f"github:{name}",
+                title=name,
+                url=f"https://github.com/{name}",
+                metadata={"stars_today": stars, "feed_rank": rank},
+            )
+
+        items = [
+            repo("org/low", 3, 1),
+            repo("org/mid", 20, 2),
+            repo("org/high", 80, 8),
+        ]
+        selected = GitHubTrendingSource._select_trending(items, 2)
+        assert [item.title for item in selected] == ["org/high", "org/mid"]
+
 
 
 class TestGenericRSSSource:
@@ -81,18 +101,24 @@ class TestGenericRSSSource:
     def test_builtin_feed_list(self):
         assert AI_BLOG_FEEDS["openai_blog"] == "https://openai.com/news/rss.xml"
         for name in (
-            "aws_blog",
+            "deepmind_blog",
+            "huggingface_blog",
+            "pytorch_blog",
             "devto_ai",
+        ):
+            assert name in AI_BLOG_FEEDS
+        for name in (
+            "aws_blog",
             "towards_data_science",
             "infoq_cn",
             "juejin",
             "bytebytego",
             "developers_digest",
             "kenashe",
+            "anthropic",
+            "ollama_blog",
         ):
-            assert name in AI_BLOG_FEEDS
-        assert "anthropic" not in AI_BLOG_FEEDS
-        assert "ollama_blog" not in AI_BLOG_FEEDS
+            assert name not in AI_BLOG_FEEDS
 
 
 class TestHuggingFaceSpacesSource:

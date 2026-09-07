@@ -28,23 +28,30 @@ Return a JSON object with these fields:
 {{
     "title_en": "Concise English headline (max 12 words, capture the core news, e.g. 'RTX 5090 Achieves 16 FPS Real-Time Video Generation')",
     "summary": "2-3 sentence summary in English",
-    "topics": ["topic tags, e.g.: LLM, Open Source, Multimodal, RL, Embodied AI, Industry, Dataset, Hardware, AI Safety, Tools"],
+    "topics": ["topic tags, e.g.: Model Capabilities, Harness, AI Insights, Open Source, Eval, LLM"],
     "entities": ["key entities: company names, people, model names, product names"],
     "sentiment": "positive/neutral/negative",
     "importance_score": 1-10 importance rating (10 = most important)
 }}
 
-CRITICAL: This is an **AI-focused newsletter**. Importance score MUST reflect AI relevance first, then impact.
+CRITICAL: Readers are **business AI Agent developers**. They use models; they do not train them.
+
+Score the four pillars first:
+1. Model capabilities as a product (API, tool-use, coding, computer-use) — NOT pretrain/post-train/architecture research
+2. Harness methodology (agent/eval harnesses, tool loops, environments, scaffolding, MCP, skills)
+3. GitHub Trending-level AI OSS worth recommending (harnesses/runtimes/SDKs, not AI wrappers)
+4. Official frontier-lab cognition about agents, eval, or product use
 
 Importance scoring rules (be consistent):
-- 9-10: Major AI product launch by top lab (OpenAI/Google/Anthropic/Meta), breakthrough SOTA result, critical AI industry event
-- 7-8: Notable open-source AI model release, significant AI funding/acquisition, important benchmark result, viral AI demo
-- 5-6: Interesting AI project/tool, meaningful AI product update, good AI tutorial/analysis
-- 3-4: Tangentially AI-related, routine discussion, minor update, niche topic
-- 1-2: NOT AI-related content (politics, general news, sports, etc.) — score 1-2 regardless of platform popularity
+- 9-10: Frontier model agentic capability, a harness that changes practice, or a major official agent/eval essay
+- 7-8: Usable developer eval, reusable harness, official developer update, or a trending OSS repo an agent team should open
+- 5-6: Incremental API/tool update or second-hand recap
+- 3-4: Generic AI product, tutorial, demo, or **pre-training / post-training / RLHF research**
+- 1-2: Off-pillar content (politics, sports, finance gossip, "I built a chatbot") — score 1-2 regardless of platform popularity
 
-Non-AI content MUST receive score 1-2, even if it has very high upvotes/engagement.
-Platform score (upvotes/stars) is a secondary signal — only matters AFTER confirming AI relevance.
+Training-science papers MUST receive 1-3 even if they are from a top lab or have high citations.
+Official lab posts about agents/product use should not be downranked for low platform scores.
+Platform score is a secondary signal — only matters AFTER confirming pillar fit.
 
 Return JSON only, no other text."""
 

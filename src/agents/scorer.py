@@ -10,7 +10,7 @@ from langchain_openai import ChatOpenAI
 
 from src.config import settings
 from src.graph.state import PipelineState
-from src.models import ExtractedItem
+from src.models import ExtractedItem, SourceType
 from src.scoring.profiles import ScoringProfile, get_profile, load_profiles
 
 logger = logging.getLogger(__name__)
@@ -72,6 +72,9 @@ def _item_payload(index: int, item: ExtractedItem) -> dict:
             "hn_url": metadata.get("hn_url"),
         },
         "engagement_context": engagement,
+        "is_official": bool(metadata.get("is_official")),
+        "is_training_research": bool(metadata.get("is_training_research")),
+        "focus_hints": metadata.get("focus_hints") or [],
     }
 
 
@@ -232,9 +235,10 @@ def _select_items(
     items: list[ExtractedItem],
     profiles: dict[str, ScoringProfile],
 ) -> list[ExtractedItem]:
-    """Threshold, category caps, topic deduplication, then global max_items."""
+    """Threshold, category caps, GitHub trending cap, topic dedup, then global max."""
     selected: list[ExtractedItem] = []
     category_counts: dict[tuple[str, str], int] = {}
+    github_count = 0
 
     for item in sorted(items, key=lambda candidate: candidate.ai_score, reverse=True):
         profile = profiles[item.scoring_profile]
@@ -246,6 +250,9 @@ def _select_items(
             continue
         if sum(existing.scoring_profile == profile.name for existing in selected) >= profile.max_items:
             continue
+        if item.source_type == SourceType.GITHUB:
+            if github_count >= settings.github_trending_max_items:
+                continue
         if any(
             item.url and item.url == existing.url
             or _topic_similarity(item, existing) >= 0.78
@@ -253,6 +260,8 @@ def _select_items(
         ):
             continue
         category_counts[count_key] = category_counts.get(count_key, 0) + 1
+        if item.source_type == SourceType.GITHUB:
+            github_count += 1
         selected.append(item)
 
     return selected[: settings.scoring_max_items]

@@ -441,9 +441,10 @@ LOG_LEVEL=INFO             # DEBUG 可看到详细采集日志
 - `analysis.md`：0-10 分标尺与结构化输出 Prompt
 - `match.md`：`SCORING_PROFILE=auto` 时使用的自动匹配 Prompt
 
-内置 `tech-news` 面向 AI Agent 开发者，重点评价框架、可复用范例、评测、
-工具链、生产实践，以及会改变 Agent 架构或运行方式的生态改革。平台热度只作为
-模型参考，不参与固定加权。低于 Profile 阈值的内容不会进入日报。
+内置 `tech-news` 面向业务 Agent 开发，围绕四类内容筛选：可用的模型能力（产品/
+API/工具调用，而非预训练与后训练）、Harness 方法论、GitHub Trending 开源项目
+（最多 2 个），以及一线实验室关于 Agent/评测/用法的官方认知。
+平台热度只作为模型参考，不参与固定加权。低于 Profile 阈值的内容不会进入日报。
 
 ## 技术栈
 

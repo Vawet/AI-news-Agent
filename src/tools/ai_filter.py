@@ -21,31 +21,31 @@ logger = logging.getLogger(__name__)
 
 # 极小核心关键词集（仅用于 LLM 不可用时的降级方案，不需要维护）
 _FALLBACK_CORE_KEYWORDS = [
-    "ai", "llm", "gpt", "machine learning", "deep learning",
-    "neural network", "transformer", "nlp", "diffusion",
-    "reinforcement learning", "computer vision",
+    "ai", "llm", "gpt", "claude", "gemini", "harness", "agent",
+    "machine learning", "deep learning", "neural network",
+    "transformer", "nlp", "diffusion", "reinforcement learning",
+    "computer vision", "benchmark", "eval",
 ]
 
-FILTER_PROMPT = """你是一个 AI 领域资讯分类专家。
-请判断以下编号标题中，哪些与 AI / 人工智能 / 机器学习 / 深度学习 / 大语言模型 / 生成式 AI 等领域**直接相关**。
+FILTER_PROMPT = """你是面向**业务 Agent 开发者**的日报编辑。读者要调用模型、写 harness、接工具，不训练基础模型。
 
-✅ 相关（必须直接涉及 AI 技术本身）：
-- AI 模型发布、评测、部署、推理
-- 机器学习 / 深度学习研究与应用
-- AI 产品、工具、框架、平台
-- AI 芯片、硬件、基础设施
-- AI 安全、对齐、可解释性研究
-- AI 相关公司技术动态（OpenAI、Google DeepMind、Anthropic、Meta AI 等）
-- 数据集、标注、训练方法
-- 任何直接使用或构建 AI 技术的项目
+只保留对以下三类**直接有用**的条目（开源项目最多当作补充）：
 
-❌ 不相关（即使提到 AI 公司或 AI 一词也要排除）：
-- 纯政治新闻（选举、战争、外交、制裁、贸易战）
-- 军事行动、武器、国家安全（非 AI 安全）
-- 体育、娱乐、名人八卦
-- 经济/金融新闻（非 AI 投融资）
-- 人权、社会议题（非 AI 伦理研究）
-- 仅因为某人在 AI 公司工作就发的无关内容
+1. 模型能力（产品视角）：新模型/API 发布、工具调用/编码/computer-use 等能力变化、对开发者有用的评测（SWE-bench、Terminal-Bench 等）
+2. Harness 方法论：agent/eval harness、工具循环、环境、scaffolding、skills、MCP、轨迹与评测脚手架
+3. 一线 AI 认知：OpenAI / Anthropic / Google DeepMind / Meta / xAI / Mistral 等关于如何理解、评估或**使用** AI/Agent 的官方工程文章
+
+✅ 保留：
+- 一线实验室讲 Agent、评测、产品能力、开发者用法的官方文章
+- 新模型发布（强调能做什么，而不是怎么训出来）
+- 可复用的 harness / Agent 运行时 / 开源工具
+
+❌ 排除：
+- 预训练、后训练、RLHF/GRPO/DPO、scaling law、架构内部、训练配方、loss/optimizer 等训练向研究
+- 只是“用了 AI”的产品、教程、课程、个人 chatbot、demo
+- 政治、军事、体育、娱乐、纯财经/融资八卦
+- 二手转述且没有新事实
+- 芯片库存、招聘
 - 公关/营销稿（PR 稿，即使来自 AI 公司官方博客也要排除）：
   * 纯战略合作、客户签约、商业联盟公告（无技术细节）
   * 高管言论、战略口号、行业展望（无具体产品/技术）
@@ -57,8 +57,8 @@ FILTER_PROMPT = """你是一个 AI 领域资讯分类专家。
 标题列表：
 {titles}
 
-请**只返回** AI 相关条目的编号，用 JSON 数组格式，如: [0, 2, 5, 7]
-如果全部相关返回所有编号，全部无关返回空数组 []。
+请**只返回**应保留条目的编号，用 JSON 数组格式，如: [0, 2, 5, 7]
+如果全部保留返回所有编号，全部排除返回空数组 []。
 只返回 JSON 数组，不要返回任何其他内容。"""
 
 
