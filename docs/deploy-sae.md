@@ -19,10 +19,26 @@ application.
 
 ## 2. Build and push the image
 
-Build from the repository root and push to the target ACR namespace:
+Do not build `linux/amd64` on Apple Silicon. Use GitHub Actions
+(`.github/workflows/build-acr-image.yml`) on `ubuntu-latest`, or any native
+amd64 host.
+
+Required GitHub Actions secrets:
+
+```text
+ACR_REGISTRY=kntech-registry.ap-southeast-1.cr.aliyuncs.com
+ACR_NAMESPACE=kntech-dev
+ACR_USERNAME
+ACR_PASSWORD
+```
+
+Use the **public** ACR hostname in GitHub Actions. SAE still pulls the same
+image through the VPC hostname.
+
+Manual build from an amd64 host:
 
 ```bash
-docker build -t <acr-registry>/<namespace>/ai-news-agent:<tag> .
+docker build --platform linux/amd64 -t <acr-registry>/<namespace>/ai-news-agent:<tag> .
 docker push <acr-registry>/<namespace>/ai-news-agent:<tag>
 ```
 

@@ -2,20 +2,17 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# 系统依赖：git + ssh + cron
+# Runtime-only OS packages. Wheels cover Python deps; skip build-essential.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential git openssh-client cron curl \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装 Python 依赖
 COPY pyproject.toml .
-RUN pip install --no-cache-dir -e ".[prod]"
-
-# 复制源码
 COPY src/ src/
 COPY scripts/ scripts/
 COPY profiles/ profiles/
 COPY site/scripts/ site/scripts/
+RUN pip install --no-cache-dir ".[prod]"
 
 # 创建必要目录
 RUN mkdir -p /app/output /app/site/src/content/blog /root/.ssh
