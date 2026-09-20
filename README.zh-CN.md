@@ -2,7 +2,7 @@
 
 [English](./README.md)
 
-基于 LangGraph 的多 Agent AI 新闻聚合系统。自动从多个数据源采集、清洗、语义去重、LLM 提取结构化信息，生成中英文双语 AI 新闻简报（日报 / 周报），支持多渠道发布。
+基于 LangGraph 的多 Agent AI 新闻聚合系统。自动从多个数据源采集、清洗、语义去重、LLM 提取结构化信息，生成日报（英文专业版、中文专业版、中文开发落地版），支持多渠道发布。
 
 **特点：**
 - **10+ 大数据源**：Reddit、Hacker News、ArXiv、GitHub Trending、RSS 博客、HuggingFace Papers / Spaces、Anthropic News、Twitter/X、Product Hunt
@@ -193,6 +193,7 @@ HN_MIN_SCORE=30
 | 环境变量 | 默认值 | 说明 |
 |----------|--------|------|
 | `GITHUB_TRENDING_DEDUP_DAYS` | `3` | 跨天去重缓存天数 |
+| `GITHUB_TRENDING_MAX_ITEMS` | `3` | 日报最多推荐的高相关项目数 |
 
 > 💡 **开箱即用**：无需配置，默认采集全语言每日 Trending。
 
@@ -429,22 +430,26 @@ ENABLE_REDDIT=false        # 默认关闭 Reddit；需要时改为 true
 SCORING_PROFILE=tech-news  # 评分规则集名称；auto 会由 LLM 自动匹配
 SCORING_BATCH_SIZE=10      # 每次评分的资讯条数
 SCORING_MAX_ITEMS=20       # 通过阈值和分类配额后的总上限
+GITHUB_TRENDING_MAX_ITEMS=3  # GitHub 开源推荐上限
 REPORT_MODE=daily          # daily / weekly
 LOG_LEVEL=INFO             # DEBUG 可看到详细采集日志
 ```
+
+产出文件在 `output/`：
+
+- `ai-daily-YYYY-MM-DD.md`：英文专业版
+- `ai-daily-YYYY-MM-DD-zh.md`：中文专业版（翻译失败时可能缺这一份）
+- `ai-daily-YYYY-MM-DD-dev.md`：中文开发落地版，每条含【事实】（只复述候选信息）和【落地参考】（条件句建议）
 
 ### 自定义评分 Profile
 
 每套规则位于 `profiles/<name>/`，包含：
 
-- `profile.toml`：阈值、最终条数及 `category_groups` 分类配额
+- `profile.toml`：阈值、最终条数、`category_groups` 上限、`category_minimums` 保底
 - `analysis.md`：0-10 分标尺与结构化输出 Prompt
 - `match.md`：`SCORING_PROFILE=auto` 时使用的自动匹配 Prompt
 
-内置 `tech-news` 面向业务 Agent 开发，围绕四类内容筛选：可用的模型能力（产品/
-API/工具调用，而非预训练与后训练）、Harness 方法论、GitHub Trending 开源项目
-（最多 3 个高相关项目），以及一线实验室关于 Agent/评测/用法的官方认知。
-平台热度只作为模型参考，不参与固定加权。低于 Profile 阈值的内容不会进入日报。
+内置 `tech-news` 面向业务 Agent 开发，四柱为：Harness 方法论、已发布模型能力、一线官方认知、GitHub Trending 开源（最多 3 个）。合格候选（≥7 分）里会尽量保底 Harness 2 条、模型能力 1 条、官方认知 1 条；没有合格条目不凑数。预训练 / 后训练研究默认不进报。落地版头条与英文专业版对齐，且不得把模型发布当成训练论文删掉。
 
 ## 技术栈
 

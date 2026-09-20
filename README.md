@@ -2,7 +2,7 @@
 
 [中文文档](./README.zh-CN.md)
 
-A multi-agent AI news aggregation system built on LangGraph. Automatically collects, cleans, deduplicates, extracts structured information via LLM, and generates bilingual (Chinese & English) AI news briefings (daily / weekly) with multi-channel publishing.
+A multi-agent AI news aggregation system built on LangGraph. Automatically collects, cleans, deduplicates, extracts structured information via LLM, and generates daily briefings (English professional, Chinese professional, Chinese developer edition) with multi-channel publishing.
 
 **Features:**
 - **10+ data sources**: Reddit, Hacker News, ArXiv, GitHub Trending, RSS blogs, HuggingFace Papers & Spaces, Anthropic News, Twitter/X, Product Hunt
@@ -191,6 +191,7 @@ HN_MIN_SCORE=30
 | Env Variable | Default | Description |
 |-------------|---------|-------------|
 | `GITHUB_TRENDING_DEDUP_DAYS` | `3` | Days to cache for cross-day dedup |
+| `GITHUB_TRENDING_MAX_ITEMS` | `3` | Max highly relevant repos in the briefing |
 
 > 💡 **Works out of the box**: No config needed. Fetches all-language daily trending by default.
 
@@ -422,9 +423,29 @@ MAX_ITEMS_PER_RUN=50       # Max items per run
 MAX_ITEMS_PER_SOURCE=15    # Max items per source
 ARXIV_MAX_ITEMS=5          # ArXiv cap (prevents paper overrepresentation)
 TOP_K_FEATURED=10          # Number of featured items
+SCORING_PROFILE=tech-news  # scoring ruleset; auto lets the LLM pick a profile
+SCORING_BATCH_SIZE=10
+SCORING_MAX_ITEMS=20       # cap after threshold and category quotas
+GITHUB_TRENDING_MAX_ITEMS=3
 REPORT_MODE=daily          # daily / weekly
 LOG_LEVEL=INFO             # DEBUG for verbose collection logs
 ```
+
+Outputs land in `output/`:
+
+- `ai-daily-YYYY-MM-DD.md` — English professional edition
+- `ai-daily-YYYY-MM-DD-zh.md` — Chinese professional edition (may be missing if translation fails)
+- `ai-daily-YYYY-MM-DD-dev.md` — Chinese developer edition; each item has **Fact** (only what the candidate JSON supports) and **Practical note** (conditional advice)
+
+### Scoring profiles
+
+Each profile lives in `profiles/<name>/`:
+
+- `profile.toml` — threshold, item cap, `category_groups` maxima, `category_minimums` floors
+- `analysis.md` — 0–10 rubric and structured scoring prompt
+- `match.md` — used when `SCORING_PROFILE=auto`
+
+Built-in `tech-news` is for business agent developers. The four pillars are harness methodology, shipped model capabilities, first-hand lab writing, and GitHub Trending OSS (at most 3). From items that already clear 7.0, selection tries to keep at least 2 harness, 1 model-capability, and 1 official-insight pieces; it does not pad empty categories. Pre-training / post-training research is dropped by default. The developer edition’s top stories match the English edition, and model launches must not be deleted as “training papers”.
 
 ## Tech Stack
 
