@@ -24,15 +24,15 @@ def setup_logging():
 logger = logging.getLogger("scheduler")
 
 
-async def run_daily_pipeline():
-    """每日 Pipeline: 全量采集 + 生成日报"""
+async def run_scheduled_pipeline():
+    """每周三、周日运行完整 Pipeline。"""
     from scripts.run_pipeline import main as pipeline_main
 
-    logger.info("⏰ 触发每日 Pipeline ...")
+    logger.info("⏰ 触发周三/周日 AI News Pipeline ...")
     try:
-        await pipeline_main(sources=["reddit", "hackernews", "arxiv", "github", "rss"])
+        await pipeline_main()
     except Exception as e:
-        logger.error(f"每日 Pipeline 失败: {e}")
+        logger.error(f"定时 Pipeline 失败: {e}")
 
 
 async def run_frequent_pipeline():
@@ -86,18 +86,22 @@ def main():
         from apscheduler.schedulers.asyncio import AsyncIOScheduler
         from apscheduler.triggers.cron import CronTrigger
         from apscheduler.triggers.interval import IntervalTrigger
+
+        from src.runtime.scheduler import build_schedule_trigger
     except ImportError:
         logger.error("APScheduler 未安装。请运行: pip install apscheduler")
         sys.exit(1)
 
     scheduler = AsyncIOScheduler()
 
-    # 每日全量 Pipeline: 每天早上 8:00 UTC
+    # 报告 Pipeline: 北京时间每周三、周日 10:00
     scheduler.add_job(
-        run_daily_pipeline,
-        CronTrigger(hour=8, minute=0),
-        id="daily_pipeline",
-        name="每日全量 Pipeline",
+        run_scheduled_pipeline,
+        build_schedule_trigger(),
+        id="wed_sun_pipeline",
+        name="周三/周日 AI News Pipeline",
+        max_instances=1,
+        coalesce=True,
         misfire_grace_time=3600,
     )
 

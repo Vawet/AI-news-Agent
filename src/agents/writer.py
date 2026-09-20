@@ -4,10 +4,9 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
-from langchain_openai import ChatOpenAI
-
 from src.config import settings
 from src.graph.state import PipelineState
+from src.llm.client import build_chat_model
 from src.models import ArticleSection, ExtractedItem, GeneratedArticle
 
 logger = logging.getLogger(__name__)
@@ -178,16 +177,8 @@ DEV_WRITER_PROMPT = """你是一位面向「标准业务 Agent 开发者」的 A
 {items_json}"""
 
 
-def _build_llm() -> ChatOpenAI:
-    kwargs = {
-        "model": settings.openai_model,
-        "max_tokens": 32768,
-    }
-    if settings.openai_api_key:
-        kwargs["api_key"] = settings.openai_api_key
-    if settings.openai_base_url:
-        kwargs["base_url"] = settings.openai_base_url
-    return ChatOpenAI(**kwargs)
+def _build_llm():
+    return build_chat_model(max_tokens=32768)
 
 
 def _group_by_topic(items: list[ExtractedItem]) -> dict[str, list[ExtractedItem]]:
@@ -469,7 +460,7 @@ async def _generate_description(top3: list[ExtractedItem], date: str) -> tuple[s
         (it.title[:40] + "...") if len(it.title) > 40 else it.title
         for it in top3
     )
-    if not settings.openai_api_key or not top3:
+    if not settings.llm_configured or not top3:
         return fallback, fallback
 
     headlines = "\n".join(f"- {it.title}" for it in top3)
@@ -530,7 +521,7 @@ async def writer_node(state: PipelineState) -> dict:
 
     # 尝试用 LLM 生成
     markdown = ""
-    if settings.openai_api_key:
+    if settings.llm_configured:
         try:
             llm = _build_llm()
             prompt = WRITER_PROMPT.format(
@@ -569,7 +560,7 @@ async def writer_node(state: PipelineState) -> dict:
 
     # 落地版：第二路 LLM 生成，失败只打 warning，不影响专业版
     markdown_dev = ""
-    if settings.openai_api_key:
+    if settings.llm_configured:
         try:
             llm_dev = _build_llm()
             top_story_titles = _extract_top_story_titles(markdown)

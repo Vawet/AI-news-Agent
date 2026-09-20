@@ -73,6 +73,7 @@ async def publish_node(state: PipelineState) -> dict:
     # 1. 始终保存 Markdown 文件
     output_dir = settings.output_path
     filepath = _save_markdown(article, output_dir)
+    artifact_paths = [str(filepath)]
 
     # 1.5 保存中文翻译版（如果有）
     if article.markdown_content_zh:
@@ -92,6 +93,7 @@ async def publish_node(state: PipelineState) -> dict:
             f'---\n\n'
         )
         zh_filepath.write_text(zh_frontmatter + article.markdown_content_zh, encoding="utf-8")
+        artifact_paths.append(str(zh_filepath))
         logger.info(f"Chinese version saved: {zh_filepath}")
 
         # 同步给英文版 frontmatter 补上 pairSlug（回写）
@@ -119,6 +121,7 @@ async def publish_node(state: PipelineState) -> dict:
             f'---\n\n'
         )
         dev_filepath.write_text(dev_frontmatter + article.markdown_content_dev, encoding="utf-8")
+        artifact_paths.append(str(dev_filepath))
         logger.info(f"Dev version saved: {dev_filepath}")
 
     # 2. 尝试发送邮件
@@ -128,4 +131,4 @@ async def publish_node(state: PipelineState) -> dict:
     await _publish_webhooks(article)
 
     logger.info(f"Publish complete: {filepath}")
-    return {}
+    return {"artifact_paths": artifact_paths}

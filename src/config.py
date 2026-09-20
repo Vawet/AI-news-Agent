@@ -16,6 +16,12 @@ class Settings(BaseSettings):
     openai_base_url: str = ""
     openai_model: str = "gpt-4o-mini"
 
+    # Internal AI Gateway (takes precedence over OPENAI_* when configured)
+    ai_gateway_token: str = ""
+    ai_gateway_base_url: str = ""
+    ai_gateway_bizid: str = "hunter"
+    ai_gateway_ability_key: str = "gcp-claude-sonnet-4-6"
+
     # 翻译专用模型（留空则复用全局 LLM 配置；建议用更强的模型如 gpt-4o）
     translate_model: str = ""
     translate_api_key: str = ""
@@ -70,6 +76,25 @@ class Settings(BaseSettings):
     smtp_from: str = ""
     newsletter_recipients: str = ""
 
+    # Feishu application bot (long connection, not a custom-bot webhook)
+    feishu_app_id: str = ""
+    feishu_app_secret: str = ""
+    feishu_allowed_chat_ids: str = ""
+    feishu_target_chat_id: str = ""
+    feishu_trigger_cooldown_seconds: int = 3600
+
+    # Alibaba Cloud OSS
+    oss_endpoint: str = ""
+    oss_resource_bucket: str = ""
+    oss_access_key_id: str = ""
+    oss_access_key_secret: str = ""
+    oss_prefix: str = "ai-news-agent"
+    oss_custom_domain: str = ""
+
+    # Cloud service
+    service_host: str = "0.0.0.0"
+    service_port: int = 8080
+
     # 审核模式 (v0.5): "auto" 或 "human"
     review_mode: str = "auto"
 
@@ -118,6 +143,30 @@ class Settings(BaseSettings):
                 name, url = item.split("=", 1)
                 result.append((name.strip(), url.strip()))
         return result
+
+    @property
+    def feishu_allowed_chats(self) -> set[str]:
+        return {
+            chat_id.strip()
+            for chat_id in self.feishu_allowed_chat_ids.split(",")
+            if chat_id.strip()
+        }
+
+    @property
+    def llm_configured(self) -> bool:
+        return bool(self.ai_gateway_token or self.openai_api_key)
+
+    @property
+    def llm_model_name(self) -> str:
+        if self.ai_gateway_token:
+            return self.ai_gateway_ability_key
+        return self.openai_model
+
+    @property
+    def llm_base_url(self) -> str:
+        if self.ai_gateway_token:
+            return f"{self.ai_gateway_base_url.rstrip('/')}/v1"
+        return self.openai_base_url
 
 
 

@@ -16,6 +16,7 @@ from typing import Sequence
 from langchain_openai import ChatOpenAI
 
 from src.config import settings
+from src.llm.client import build_chat_model
 
 logger = logging.getLogger(__name__)
 
@@ -65,16 +66,8 @@ FILTER_PROMPT = """你是面向**业务 Agent 开发者**的日报编辑。读�
 只返回 JSON 数组，不要返回任何其他内容。"""
 
 
-def _build_llm() -> ChatOpenAI:
-    kwargs = {
-        "model": settings.openai_model,
-        "max_tokens": 16384,
-    }
-    if settings.openai_api_key:
-        kwargs["api_key"] = settings.openai_api_key
-    if settings.openai_base_url:
-        kwargs["base_url"] = settings.openai_base_url
-    return ChatOpenAI(**kwargs)
+def _build_llm():
+    return build_chat_model(max_tokens=16384)
 
 
 def _strip_html(text: str) -> str:
@@ -174,7 +167,7 @@ async def batch_filter_ai(
     descs_list = list(descriptions) if descriptions else None
 
     # LLM 不可用时降级
-    if not settings.openai_api_key:
+    if not settings.llm_configured:
         logger.info("LLM not configured, using fallback keyword filter")
         return _fallback_filter(titles_list)
 

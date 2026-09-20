@@ -23,5 +23,8 @@ RUN mkdir -p /app/output /app/site/src/content/blog /root/.ssh
 ENV PYTHONUNBUFFERED=1
 ENV OUTPUT_DIR=/app/output
 
-# 默认单次运行（docker run 时可覆盖）
-CMD ["python", "scripts/run_pipeline.py"]
+EXPOSE 8080
+
+# 云端默认常驻：健康检查 + 周三/周日调度 + 飞书长连接。
+# 单次运行仍可通过覆盖 command 执行 scripts/run_pipeline.py。
+CMD ["python", "scripts/run_service.py"]

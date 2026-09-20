@@ -58,6 +58,7 @@ async def main(sources: list[str] | None = None):
         "deduped_items": [],
         "extracted_items": [],
         "article": None,
+        "artifact_paths": [],
         "run_id": "",
         "run_started_at": "",
         "sources_config": sources or _default_sources(),

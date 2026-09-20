@@ -10,6 +10,7 @@ from langchain_openai import ChatOpenAI
 
 from src.config import settings
 from src.graph.state import PipelineState
+from src.llm.client import build_chat_model
 from src.models import CleanedItem, ExtractedItem, Sentiment
 
 logger = logging.getLogger(__name__)
@@ -62,19 +63,13 @@ Platform score is a secondary signal — only matters AFTER confirming pillar fi
 Return JSON only, no other text."""
 
 
-def _build_llm() -> ChatOpenAI:
+def _build_llm():
     """构建 LLM 实例，强制 JSON 输出，temperature=0 保证评分稳定"""
-    kwargs = {
-        "model": settings.openai_model,
-        "max_tokens": 16384,
-        "temperature": 0,
-        "model_kwargs": {"response_format": {"type": "json_object"}},
-    }
-    if settings.openai_api_key:
-        kwargs["api_key"] = settings.openai_api_key
-    if settings.openai_base_url:
-        kwargs["base_url"] = settings.openai_base_url
-    return ChatOpenAI(**kwargs)
+    return build_chat_model(
+        max_tokens=16384,
+        temperature=0,
+        model_kwargs={"response_format": {"type": "json_object"}},
+    )
 
 
 def _parse_extraction(raw: str) -> Optional[dict]:
@@ -197,13 +192,13 @@ async def extractor_node(state: PipelineState) -> dict:
 
     logger.info(
         f"Extracting structured info from {len(deduped)} items ... "
-        f"API_KEY={'SET' if settings.openai_api_key else 'EMPTY'} "
-        f"MODEL={settings.openai_model} "
-        f"BASE_URL={settings.openai_base_url or 'default'}"
+        f"API_KEY={'SET' if settings.llm_configured else 'EMPTY'} "
+        f"MODEL={settings.llm_model_name} "
+        f"BASE_URL={settings.llm_base_url or 'default'}"
     )
 
     # 检查 API key 是否配置
-    if not settings.openai_api_key:
+    if not settings.llm_configured:
         logger.warning("OPENAI_API_KEY not set, using fallback extraction")
         extracted = [_fallback_extract(item) for item in deduped]
     else:

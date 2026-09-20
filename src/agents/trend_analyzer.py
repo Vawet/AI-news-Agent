@@ -4,9 +4,8 @@ import json
 import logging
 from datetime import datetime, timezone
 
-from langchain_openai import ChatOpenAI
-
 from src.config import settings
+from src.llm.client import build_chat_model
 
 logger = logging.getLogger(__name__)
 
@@ -44,13 +43,8 @@ DEEPDIVE_PROMPT = """你是一位专业的 AI 行业分析师。请围绕话题�
 请直接输出 Markdown 内容。"""
 
 
-def _build_llm() -> ChatOpenAI:
-    kwargs = {"model": settings.openai_model, "max_tokens": 16384}
-    if settings.openai_api_key:
-        kwargs["api_key"] = settings.openai_api_key
-    if settings.openai_base_url:
-        kwargs["base_url"] = settings.openai_base_url
-    return ChatOpenAI(**kwargs)
+def _build_llm():
+    return build_chat_model(max_tokens=16384)
 
 
 async def generate_trend_report(days: int = 7) -> str | None:
@@ -90,7 +84,7 @@ async def generate_trend_report(days: int = 7) -> str | None:
 
         articles_json = json.dumps(articles, ensure_ascii=False, indent=2, default=str)
 
-        if not settings.openai_api_key:
+        if not settings.llm_configured:
             return _fallback_trend_report(trending, articles, days)
 
         llm = _build_llm()
@@ -136,7 +130,7 @@ async def generate_deepdive_report(topic: str) -> str | None:
 
         articles_json = json.dumps(articles, ensure_ascii=False, indent=2, default=str)
 
-        if not settings.openai_api_key:
+        if not settings.llm_configured:
             return f"# Topic: {topic}\n\n{len(articles)} related articles found. LLM required for deep analysis."
 
         llm = _build_llm()
