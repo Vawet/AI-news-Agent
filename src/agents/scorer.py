@@ -235,36 +235,73 @@ def _select_items(
     items: list[ExtractedItem],
     profiles: dict[str, ScoringProfile],
 ) -> list[ExtractedItem]:
-    """Threshold, category caps, GitHub trending cap, topic dedup, then global max."""
+    """Reserve qualified pillar coverage, then apply caps, dedup, and global max."""
     selected: list[ExtractedItem] = []
     category_counts: dict[tuple[str, str], int] = {}
+    profile_counts: dict[str, int] = {}
     github_count = 0
 
-    for item in sorted(items, key=lambda candidate: candidate.ai_score, reverse=True):
+    def try_add(item: ExtractedItem) -> bool:
+        nonlocal github_count
         profile = profiles[item.scoring_profile]
         if item.ai_score < profile.threshold:
-            continue
+            return False
         category = _category_for(item, profile)
         count_key = (profile.name, category)
         if category_counts.get(count_key, 0) >= profile.category_groups[category]:
-            continue
-        if sum(existing.scoring_profile == profile.name for existing in selected) >= profile.max_items:
-            continue
-        if item.source_type == SourceType.GITHUB:
-            if github_count >= settings.github_trending_max_items:
-                continue
+            return False
+        if profile_counts.get(profile.name, 0) >= profile.max_items:
+            return False
+        if len(selected) >= settings.scoring_max_items:
+            return False
+        # "Open Source" is reserved for actual GitHub Trending repositories.
+        if category == "Open Source" and item.source_type != SourceType.GITHUB:
+            return False
+        if (
+            item.source_type == SourceType.GITHUB
+            and github_count >= settings.github_trending_max_items
+        ):
+            return False
         if any(
-            item.url and item.url == existing.url
+            (item.url and item.url == existing.url)
             or _topic_similarity(item, existing) >= 0.78
             for existing in selected
         ):
-            continue
+            return False
         category_counts[count_key] = category_counts.get(count_key, 0) + 1
+        profile_counts[profile.name] = profile_counts.get(profile.name, 0) + 1
         if item.source_type == SourceType.GITHUB:
             github_count += 1
         selected.append(item)
+        return True
 
-    return selected[: settings.scoring_max_items]
+    ranked = sorted(items, key=lambda candidate: candidate.ai_score, reverse=True)
+
+    # Reserve coverage only from candidates that already cleared the profile
+    # threshold. Missing categories stay empty rather than being padded.
+    for profile_name, profile in profiles.items():
+        for category, minimum in profile.category_minimums.items():
+            candidates = [
+                item for item in ranked
+                if item.scoring_profile == profile_name
+                and _category_for(item, profile) == category
+            ]
+            while category_counts.get((profile_name, category), 0) < minimum:
+                candidate = next(
+                    (item for item in candidates if item not in selected),
+                    None,
+                )
+                if candidate is None or not try_add(candidate):
+                    if candidate is not None:
+                        candidates.remove(candidate)
+                        continue
+                    break
+
+    for item in ranked:
+        if item not in selected:
+            try_add(item)
+
+    return sorted(selected, key=lambda item: item.ai_score, reverse=True)
 
 
 async def scorer_node(state: PipelineState) -> dict:

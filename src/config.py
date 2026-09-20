@@ -39,9 +39,9 @@ class Settings(BaseSettings):
     # 自定义 RSS 源（格式: name1=url1,name2=url2）
     rss_feeds: str = ""
 
-    # GitHub 趋势去重缓存天数；日报最多推荐 2 个 AI 相关 trending 项目
+    # GitHub 趋势去重缓存天数；日报最多推荐 3 个高相关 trending 项目
     github_trending_dedup_days: int = 3
-    github_trending_max_items: int = 2
+    github_trending_max_items: int = 3
 
     # HuggingFace Papers
     hf_papers_min_upvotes: int = 5

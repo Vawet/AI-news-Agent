@@ -1,6 +1,11 @@
 """Writer Agent tests."""
 
-from src.agents.writer import _annotate_items, _origin_url
+from src.agents.writer import (
+    _annotate_items,
+    _extract_top_story_titles,
+    _normalize_dev_source_labels,
+    _origin_url,
+)
 from src.models import ExtractedItem, SourceType
 
 
@@ -93,9 +98,44 @@ def test_fallback_dev_markdown_contains_required_sections():
     ]
     result = _build_fallback_dev_markdown(items, "2026-09-05")
 
-    assert "【人话版】" in result
-    assert "【开发能用上】" in result
+    assert "【事实】" in result
+    assert "【落地参考】" in result
     assert "## 开发趋势总结" in result
     assert "## 已筛除条目说明" in result
     assert "BCIT post-training experience transfer" not in result
     assert "1 条" in result
+
+
+def test_extract_top_story_titles_only_reads_top_stories_section():
+    markdown = "\n".join(
+        [
+            "# AI Daily — 2026-09-19",
+            "## 🔥 Top Stories",
+            "### 1. SoL-Pi Cuts Token Traffic",
+            "body",
+            "### 2. DeepSeek V4.1 Flash",
+            "body",
+            "## 📰 Featured",
+            "### Model Capabilities",
+            "- **Gemini 3.8 Live** — summary",
+        ]
+    )
+
+    assert _extract_top_story_titles(markdown) == [
+        "SoL-Pi Cuts Token Traffic",
+        "DeepSeek V4.1 Flash",
+    ]
+
+
+def test_dev_source_label_follows_url_domain():
+    markdown = (
+        "**AI 评分：8.7/10** 来源-huggingface — https://arxiv.org/abs/2609.20519\n"
+        "**AI 评分：7.0/10** 来源-hackernews — https://twitter.com/trq212/status/1\n"
+        "**AI 评分：7.8/10** 来源-hackernews — https://alignment.openai.com/reports/x/\n"
+    )
+
+    result = _normalize_dev_source_labels(markdown)
+
+    assert "来源-arxiv — https://arxiv.org/abs/2609.20519" in result
+    assert "来源-x — https://twitter.com/trq212/status/1" in result
+    assert "来源-rss — https://alignment.openai.com/reports/x/" in result

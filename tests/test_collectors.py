@@ -85,10 +85,10 @@ def _github_item(name: str, stars_today: int) -> RawItem:
     )
 
 
-def test_smart_select_caps_github_at_two():
+def test_smart_select_caps_github_at_three():
     items_by_source = {
         "github_trending": [_github_item(f"org/repo-{i}", 100 - i) for i in range(5)],
     }
     selected = _smart_select(items_by_source)
-    assert len(selected) == 2
+    assert len(selected) == 3
 

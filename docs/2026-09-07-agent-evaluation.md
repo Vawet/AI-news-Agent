@@ -10,7 +10,7 @@
 
 本项目不是对话 Agent，也不是工具循环 Agent。评测对象是一条多节点流水线：采集 → 富化 → 清洗 → 去重 → 抽取 → 评分选稿 → 事件合并 → 撰稿 / 翻译 / 落地版。
 
-读者画像以 `tech-news` Profile 为准：业务 Agent 开发者，关心模型产品能力、Harness 方法论、GitHub Trending 开源（配额 ≤ 2）、一线实验室官方认知；排除预训练 / 后训练等训练向研究。
+读者画像以 `tech-news` Profile 为准：业务 Agent 开发者，重点关注 Harness 方法论与模型产品能力、GitHub Trending 高相关开源（配额 ≤ 3）、一线实验室官方认知；排除预训练 / 后训练等训练向研究。
 
 因此评测只回答四件事：
 
@@ -107,7 +107,7 @@ flowchart LR
 | 必选召回 | 漏掉官方 Agent 文 / 新模型 API 即失败 |
 | 必丢精确 | 训练向、融资八卦、chatbot demo 不得入选 |
 | Jaccard（入选 ID 集合） | 改 Prompt 后的漂移 |
-| 分类配额违约次数 | GitHub Trending 是否超过 2 |
+| 分类配额违约次数 | GitHub Trending 是否超过 3 |
 | 排序 Spearman | 相对重要性是否稳定 |
 | 跨模型漂移 | 同一 fixture，不同 `OPENAI_MODEL` |
 

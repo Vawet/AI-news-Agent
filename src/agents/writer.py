@@ -63,10 +63,12 @@ Writing rules:
 4. Every news item MUST visibly include its exact **AI Score: x.x/10**, then [Source-source](url), then the plain origin URL so readers can see the address
 5. Similar news from different sources can be merged
 6. Professional, concise writing for AI practitioners
-7. For Top Stories, prefer usable model capabilities, harness methods, and official lab cognition for agent builders; use ai_reason to explain why
-8. Recommend at most two GitHub Trending projects; do not pad Open Source with extra repos
-9. Do not feature pre-training, post-training, RLHF, or architecture-training papers
-10. Output Markdown directly, no code blocks
+7. Give Harness Methodology prominent coverage. Prefer reusable architecture, context/tool/memory patterns, eval infrastructure, observability, security, and concrete failure lessons over benchmark announcements
+8. Model Capabilities includes shipped model/API releases and measured changes in coding, tool use, computer use, latency, cost, context, or multimodality
+9. For official AI Insights, extract the non-obvious core claim, its concrete evidence, and the implication for agent builders; never reduce it to generic PR language
+10. Recommend at most three highly relevant GitHub Trending projects; do not pad Open Source with wrappers, demos, or unrelated popular repos
+11. Do not feature pre-training, post-training, RLHF, or architecture-training papers
+12. Output Markdown directly, no code blocks
 
 ## Featured Items (AI score ≥ {threshold}, {featured_count} items)
 {featured_json}
@@ -79,28 +81,58 @@ DEV_WRITER_PROMPT = """你是一位面向「标准业务 Agent 开发者」的 A
 
 ━━━━━━ 筛选规则（优先级最高，写正文前先做取舍） ━━━━━━
 
-落地版面向业务 Agent 开发者，不面向机器学习研究员。每条候选新闻按 A/B/C 三类取舍：
+落地版面向业务 Agent 开发者，不面向机器学习研究员。按以下四柱取舍，前面的 scorer 已完成选稿，除明确属于训练研究外不得擅自删除高分条目：
 
-- A 类·业务 Agent 工程（编排、工具调用、记忆、RAG、Prompt 工程、MCP、安全护栏、可观测性、部署运维）：默认收录。
+- A1 类·Harness 方法论（编排、context engineering、工具调用、记忆、RAG、Prompt 工程、MCP、安全护栏、评测、沙盒、可观测性、失败恢复、部署运维）：重点收录并优先提炼可复用的方法、适用边界和失败教训。仅发布一个新 benchmark、没有可复用方法的，不自动视为高价值 Harness。
+- A2 类·已发布模型能力（新模型/API、编码、tool-use、computer-use、推理、上下文、多模态、延迟和成本变化）：默认收录，并说明它会改变哪类 Agent 设计或需要重跑什么评测。**严禁仅因“模型发布/模型能力更新”将其筛除。**
+- A3 类·官方一线 AI 认知（OpenAI、Anthropic、Google DeepMind、Meta、xAI、Mistral 等一线团队的第一手工程文章）：有具体事实、数据或失败经验时收录，必须提炼“核心认知 + 证据 + 对 Agent 团队的启示”，不能改写成泛泛公关摘要。
+- A4 类·GitHub Trending 开源项目：最多 3 个，只保留与 Agent/harness/模型调用高度相关、可复用、有实现深度的项目；薄封装、个人 demo 和蹭热度项目筛除。
 - C 类·基础设施（推理加速、KV 缓存、显存优化、运行时、向量库、沙盒环境）：仅当对标准 Agent 运行时/部署有直接收益时收录。
-- B 类·模型/算法（后训练、微调、对齐、注意力机制改进、形式化证明、神经编译、经验回放、奖励建模）：默认筛除。理由——标准业务 Agent 开发 ≠ 机器学习模型训练。
-  例外：仅当读者计划"私有化开源模型 + 微调"时才收录，并在条目末追加 `⚠️ 适用前提：团队有私有化/微调计划，否则可跳过`，把"开发能用上"改成"如果你要做模型私有化微调，可以用这个办法……"。
+- B 类·训练/底层算法研究（预训练、后训练、微调、对齐、注意力机制研究、形式化证明、神经编译、经验回放、奖励建模）：默认筛除。理由——标准业务 Agent 开发 ≠ 机器学习模型训练。注意：已发布模型/API 的能力变化属于 A2，不属于 B。
+  例外：仅当读者计划"私有化开源模型 + 微调"时才收录，并在条目末追加 `⚠️ 适用前提：团队有私有化/微调计划，否则可跳过`，把【落地参考】写成"如果你要做模型私有化微调，可以……"。
 
 被筛除的 B 类条目不进正文，但要在文末"已筛除条目说明"段点名存在。当日筛除数 ≥ 一半时，在"开发趋势总结"里提示"今日偏算法侧，业务 Agent 落地条目较少"。
+
+━━━━━━ 严禁编造（与筛选规则同等优先） ━━━━━━
+
+易懂不等于可以瞎编。下面的候选 JSON 是唯一事实来源，你没有读过原文。
+
+【事实】栏的硬约束：
+- 只能陈述候选 JSON 的 title / summary / ai_reason 里出现过的内容，可以改写措辞，不得新增信息。
+- 原文没给的具体细节一律不许补：不许编造机制名称、模块清单、漏洞类型、参数、比例、支持的平台或功能。
+  反例：原文只说"包含四种效率机制"，就不能写成"加了缓存、摘要、精简上下文"；原文只说"六阶段安全审计"，就不能写成"检查 SQL 注入、XSS"。
+- 禁止使用"首次""最早""业界唯一""第一个"等最高级，除非候选 JSON 原文出现了对应表述。
+- 原文明确缺失的信息，直接写"原文未说明"，不要用推测填补。
+- 不确定的技术细节就写得更概括，宁可少说，不要说错。
+
+【落地参考】栏的硬约束：
+- 这一栏是编辑给出的工程建议，不是原文事实，必须用条件句写："如果你……可以……"。
+- 建议可以基于通用工程常识，但**不得把建议里的细节反过来说成是该项目/论文提供的能力**。
+- 如果要提原文没写的用途或场景，必须让读者看得出这是推论（例如"原文未列举适用场景，如果你的 Agent……可以先小范围验证"）。
+- 想不出有依据的建议时，就写"原文信息有限，建议先读原文再评估"，不要硬编。
+
+【核心认知】栏（仅 A3 官方一线条目）：主张和证据都必须来自候选 JSON，不得添加原文没有的结论强度。
+
+━━━━━━ 头条对齐 ━━━━━━
+
+专业版今天选出的头条如下（可能为空）：
+{top_story_titles}
+
+落地版头条必须与之**完全一致**：数量相同、标题相同、顺序相同。不要自行增减或替换头条；其余条目放进专题报道。若上面为空，则按 ai_score 取前 2-3 条作为头条。
 
 ━━━━━━ 输出模板（严格遵循） ━━━━━━
 
 # AI 日报（开发落地版） — {date}
 
-> 涵盖 {total_count} 条 AI 新闻资讯 · 每条带「人话 + 你能怎么用」
+> 涵盖 {total_count} 条 AI 新闻资讯 · 每条包含【事实】与【落地参考】
 
 ## 🔥 头条新闻
 
 ### 1. 标题（保留模型/产品名原文）
 
-**【人话版】** 大白话 + 比喻，2-3 句
+**【事实】** 用大白话复述原文讲了什么，2-3 句，可以打比方，但不得超出原文信息
 
-**【开发能用上】** 如果你的 Agent/项目中遇到[XX]，可以用这个办法[YYY]
+**【落地参考】** 如果你的 Agent/项目遇到[XX]，可以考虑[YYY]（编辑建议，用条件句）
 
 **AI 评分：x.x/10** 来源-xxx — url
 
@@ -109,8 +141,9 @@ DEV_WRITER_PROMPT = """你是一位面向「标准业务 Agent 开发者」的 A
 ### 主题名
 
 - **标题**
-  **【人话版】** ……
-  **【开发能用上】** ……
+  **【事实】** ……
+  **【落地参考】** ……
+  **【核心认知】** ……（仅 A3 官方一线认知条目需要：一句核心主张 + 一句证据/启示）
   **AI 评分：x.x/10** 来源-xxx — url
 
 ## ⚡ 简讯
@@ -121,21 +154,25 @@ DEV_WRITER_PROMPT = """你是一位面向「标准业务 Agent 开发者」的 A
 
 ## 开发趋势总结
 
-1-2 句话总结今日对业务 Agent 开发者最重要的趋势。
+1-2 句话总结今日对业务 Agent 开发者最重要的趋势，只能基于正文已出现的条目。
 
 ## 已筛除条目说明
 
-今日共有 N 条属模型训练/算法范畴（后训练、微调、对齐、形式化证明等），对标准业务 Agent 开发迭代无直接落地价值，已从正文筛除。如团队有"私有化开源模型 + 微调"计划，可回看专业版 -zh.md 获取详情。
+今日共有 N 条属模型训练/算法范畴（后训练、微调、对齐、形式化证明等），已从正文筛除。如团队有"私有化开源模型 + 微调"计划，可回看专业版 -zh.md 获取详情。
+（若 N 为 0，本段只写一句"今日无筛除条目。"，不要再解释。）
 
 ━━━━━━ 模板结束 ━━━━━━
 
 写作规则：
 1. 直接用中文生成，不先英后译
 2. 每条保留模型/产品名原文（如 Qwen3.5、Claude Code、Lean）
-3. 每条必须有【人话版】+【开发能用上】+ AI 评分 + 原文 URL
-4. 语气口语、轻松、有技术点、每条短
-5. 筛除的 B 类不进正文，只在文末点名
-6. 直接输出 Markdown，不要代码块包裹
+3. 每条必须有【事实】+【落地参考】+ AI 评分 + 原文 URL；官方一线认知条目额外包含【核心认知】
+4. 语气平实口语、每条短；可以通俗，但不能为了通俗牺牲准确
+5. 筛除的 B 类不进正文，只在文末点名；不得把新模型/API 能力更新写进筛除说明
+6. Harness 条目要说明可复用方法或评测/运行方式；原文没给方法细节时，如实说明原文只到结论层面
+7. GitHub 项目最多 3 个，只描述候选 JSON 里写明的能力
+8. `来源-xxx` 的 xxx 直接用候选 JSON 的 source 字段，不要自行猜测
+9. 直接输出 Markdown，不要代码块包裹
 
 ## 候选新闻（共 {total_count} 条，已按 ai_score 降序）
 {items_json}"""
@@ -228,7 +265,7 @@ def _build_fallback_markdown(items: list[ExtractedItem], today: str) -> str:
 
 
 def _build_fallback_dev_markdown(items: list[ExtractedItem], today: str) -> str:
-    """LLM 不可用时的落地版降级模板，按 3.5 节规则筛除 B 类，保证含「人话/开发能用上/趋势总结/已筛除说明」"""
+    """LLM 不可用时的落地版降级模板，按 3.5 节规则筛除 B 类，保证含「事实/落地参考/趋势总结/已筛除说明」"""
     b_keywords = ["后训练", "微调", "对齐", "形式化", "神经编译", "经验回放", "奖励建模", "post-training", "fine-tun", "alignment", "autoformalization"]
     included, excluded = [], []
     for item in items:
@@ -241,7 +278,7 @@ def _build_fallback_dev_markdown(items: list[ExtractedItem], today: str) -> str:
     lines = [
         f"# AI 日报（开发落地版） — {today}",
         "",
-        f"> 涵盖 {len(items)} 条 AI 新闻资讯 · 每条带「人话 + 你能怎么用」",
+        f"> 涵盖 {len(items)} 条 AI 新闻资讯 · 每条包含【事实】与【落地参考】",
         "",
     ]
 
@@ -252,12 +289,13 @@ def _build_fallback_dev_markdown(items: list[ExtractedItem], today: str) -> str:
         for idx, item in enumerate(top, 1):
             lines.append(f"### {idx}. {item.title}")
             lines.append("")
-            lines.append(f"**【人话版】** {item.summary or item.title}")
+            lines.append(f"**【事实】** {item.summary or item.title}")
             lines.append("")
-            lines.append(f"**【开发能用上】** 如果你的 Agent/项目中遇到相关问题，可以参考这条：{item.ai_reason or '见原文'}")
+            lines.append(f"**【落地参考】** 如果你的 Agent/项目中遇到相关问题，可以参考这条：{item.ai_reason or '见原文'}")
             lines.append("")
-            src = item.source_type.value
-            lines.append(f"**AI 评分：{item.ai_score:.1f}/10** 来源-{src} — {_origin_url(item)}")
+            origin = _origin_url(item)
+            src = _source_label_for_url(origin)
+            lines.append(f"**AI 评分：{item.ai_score:.1f}/10** 来源-{src} — {origin}")
             lines.append("")
 
     rest = included[3:]
@@ -266,10 +304,11 @@ def _build_fallback_dev_markdown(items: list[ExtractedItem], today: str) -> str:
         lines.append("")
         for item in rest:
             lines.append(f"- **{item.title}**")
-            lines.append(f"  **【人话版】** {item.summary or item.title}")
-            lines.append(f"  **【开发能用上】** {item.ai_reason or '见原文'}")
-            src = item.source_type.value
-            lines.append(f"  **AI 评分：{item.ai_score:.1f}/10** 来源-{src} — {_origin_url(item)}")
+            lines.append(f"  **【事实】** {item.summary or item.title}")
+            lines.append(f"  **【落地参考】** {item.ai_reason or '见原文'}")
+            origin = _origin_url(item)
+            src = _source_label_for_url(origin)
+            lines.append(f"  **AI 评分：{item.ai_score:.1f}/10** 来源-{src} — {origin}")
         lines.append("")
 
     lines.append("## ⚡ 简讯")
@@ -287,45 +326,75 @@ def _build_fallback_dev_markdown(items: list[ExtractedItem], today: str) -> str:
     lines.append("")
     lines.append("## 已筛除条目说明")
     lines.append("")
-    lines.append(
-        f"今日共有 {len(excluded)} 条属模型训练/算法范畴（后训练、微调、对齐、形式化证明等），"
-        f"对标准业务 Agent 开发迭代无直接落地价值，已从正文筛除。"
-        f"如团队有\"私有化开源模型 + 微调\"计划，可回看专业版 -zh.md 获取详情。"
-    )
+    if excluded:
+        lines.append(
+            f"今日共有 {len(excluded)} 条属模型训练/算法范畴（后训练、微调、对齐、形式化证明等），"
+            f"已从正文筛除。"
+            f"如团队有\"私有化开源模型 + 微调\"计划，可回看专业版 -zh.md 获取详情。"
+        )
+    else:
+        lines.append("今日无筛除条目。")
     lines.append("")
 
     return "\n".join(lines)
+
+
+# 域名 → 来源标签映射
+_SOURCE_DOMAIN_MAP = {
+    "x.com": "x", "twitter.com": "x",
+    "reddit.com": "reddit",
+    "news.ycombinator.com": "hackernews", "hn.algolia.com": "hackernews",
+    "arxiv.org": "arxiv",
+    "github.com": "github",
+    "huggingface.co": "huggingface",
+    "anthropic.com": "anthropic",
+}
+
+
+def _source_label_for_url(url: str) -> str:
+    """来源标签一律由 URL 域名决定，避免标签与链接指向不一致。"""
+    for domain, label in _SOURCE_DOMAIN_MAP.items():
+        if domain in url:
+            return label
+    return "rss"
 
 
 def _normalize_source_links(markdown: str) -> str:
     """后处理：统一所有链接标签为 [Source-xxx](url) 格式"""
     import re
 
-    # 域名 → 来源标签映射
-    domain_map = {
-        "x.com": "x", "twitter.com": "x",
-        "reddit.com": "reddit",
-        "news.ycombinator.com": "hackernews", "hn.algolia.com": "hackernews",
-        "arxiv.org": "arxiv",
-        "github.com": "github",
-        "huggingface.co": "huggingface",
-        "anthropic.com": "anthropic",
-    }
-
-    def _get_source(url: str) -> str:
-        for domain, label in domain_map.items():
-            if domain in url:
-                return label
-        return "rss"
-
-    # 匹配所有 markdown 链接 [任意文本](url)
     def replacer(m):
-        text = m.group(1)
         url = m.group(2)
-        source = _get_source(url)
-        return f"[Source-{source}]({url})"
+        return f"[Source-{_source_label_for_url(url)}]({url})"
 
     return re.sub(r'\[([^\]]*)\]\((https?://[^\)]+)\)', replacer, markdown)
+
+
+def _normalize_dev_source_labels(markdown: str) -> str:
+    """落地版的「来源-xxx — url」同样按 URL 域名校正标签。"""
+    import re
+
+    def replacer(m):
+        url = m.group(2)
+        return f"来源-{_source_label_for_url(url)} — {url}"
+
+    return re.sub(r'来源-([\w.-]+)\s*—\s*(https?://\S+)', replacer, markdown)
+
+
+def _extract_top_story_titles(markdown: str) -> list[str]:
+    """取专业版 Top Stories 的标题，供落地版对齐头条数量与选择。"""
+    import re
+
+    titles: list[str] = []
+    in_top = False
+    for line in markdown.splitlines():
+        if line.startswith("## "):
+            in_top = "Top Stories" in line
+            continue
+        if in_top and line.startswith("### "):
+            heading = line[4:].strip()
+            titles.append(re.sub(r"^\d+\.\s*", "", heading))
+    return titles
 
 
 def _origin_url(item: ExtractedItem) -> str:
@@ -503,9 +572,14 @@ async def writer_node(state: PipelineState) -> dict:
     if settings.openai_api_key:
         try:
             llm_dev = _build_llm()
+            top_story_titles = _extract_top_story_titles(markdown)
             dev_prompt = DEV_WRITER_PROMPT.format(
                 date=today,
                 total_count=len(extracted),
+                top_story_titles=(
+                    "\n".join(f"{i}. {t}" for i, t in enumerate(top_story_titles, 1))
+                    or "（专业版未给出头条）"
+                ),
                 items_json=_items_to_json(extracted),
             )
             dev_resp = await llm_dev.ainvoke(dev_prompt)
@@ -514,6 +588,7 @@ async def writer_node(state: PipelineState) -> dict:
                 logger.warning("Dev version missing filter section, falling back")
                 markdown_dev = _build_fallback_dev_markdown(extracted, today)
             else:
+                markdown_dev = _normalize_dev_source_labels(markdown_dev)
                 logger.info("Dev version writing complete")
         except Exception as e:
             logger.warning(f"Dev version LLM failed, falling back to template: {e}")

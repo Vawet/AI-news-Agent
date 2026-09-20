@@ -1,7 +1,7 @@
 """Load independent scoring profiles from ``profiles/<name>``."""
 
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from src.config import settings
@@ -16,6 +16,7 @@ class ScoringProfile:
     category_groups: dict[str, int]
     analysis_prompt: str
     match_prompt: str
+    category_minimums: dict[str, int] = field(default_factory=dict)
 
 
 def profiles_root() -> Path:
@@ -40,6 +41,11 @@ def load_profiles() -> dict[str, ScoringProfile]:
             str(category): int(limit)
             for category, limit in data.get("category_groups", {}).items()
         }
+        minimums = {
+            str(category): int(limit)
+            for category, limit in data.get("category_minimums", {}).items()
+            if str(category) in categories and int(limit) > 0
+        }
         if not categories:
             categories = {"Other": int(data.get("max_items", settings.scoring_max_items))}
 
@@ -51,6 +57,7 @@ def load_profiles() -> dict[str, ScoringProfile]:
             category_groups=categories,
             analysis_prompt=(profile_dir / "analysis.md").read_text(encoding="utf-8"),
             match_prompt=(profile_dir / "match.md").read_text(encoding="utf-8"),
+            category_minimums=minimums,
         )
 
     if not profiles:

@@ -25,3 +25,6 @@ env/
 # IDE
 .idea/
 .vscode/
+
+# Twitter 源的原始抓取转储，仅用于排查解析问题
+output/twitter_debug/

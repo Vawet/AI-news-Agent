@@ -3,9 +3,9 @@
 Audience: people building production / business AI agents.
 
 Keep:
-1. Model capabilities as a product (what you can call, how well it tools/codes)
-2. Harness methodology
-3. GitHub Trending AI OSS (hard cap of 2)
+1. Harness methodology
+2. Model capabilities as a product (what you can call, how well it tools/codes)
+3. GitHub Trending AI OSS (hard cap of 3)
 4. Official frontier-lab cognition useful to agent builders
 
 Drop deep pre-training / post-training / architecture research.
@@ -45,6 +45,9 @@ HARNESS_TERMS = (
     "harness", "agent", "tool use", "tool-use", "scaffolding", "orchestration",
     "eval harness", "swe-bench", "terminal-bench", "coding agent",
     "computer use", "environment", "trajectory", "mcp", "skills",
+    "context engineering", "context management", "memory", "planning",
+    "observability", "sandbox", "failure recovery", "guardrail",
+    "multi-agent", "tool calling", "function calling",
 )
 
 # Deep training research that business agent builders do not need.
@@ -58,7 +61,7 @@ _TRAINING_TITLE_RE = re.compile(
     re.I,
 )
 
-GITHUB_TRENDING_MAX_ITEMS = 2
+GITHUB_TRENDING_MAX_ITEMS = 3
 
 
 def _text_blob(item: Any) -> str:

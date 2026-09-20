@@ -1,56 +1,12 @@
 {
-  "2026-09-04": [
-    "google-research/timesfm",
-    "DietrichGebert/ponytail",
-    "debpalash/VoiceStudio",
-    "ChromeDevTools/chrome-devtools-mcp",
-    "NousResearch/hermes-agent",
-    "superlinked/sie",
-    "pacifio/atlas",
-    "Imbad0202/academic-research-skills",
-    "affaan-m/ECC",
-    "blader/humanizer",
-    "JuliusBrussee/caveman",
-    "mattpocock/skills",
-    "Gitlawb/openclaude"
-  ],
-  "2026-09-05": [
-    "mattpocock/skills",
-    "DietrichGebert/ponytail",
-    "affaan-m/ECC",
-    "anthropics/skills",
-    "blader/humanizer",
-    "NousResearch/hermes-agent",
-    "JuliusBrussee/caveman",
-    "magnitudedev/magnitude",
-    "debpalash/VoiceStudio",
-    "google-research/timesfm",
-    "radixark/miles",
-    "anomalyco/opencode",
-    "cathrynlavery/diagram-design"
-  ],
-  "2026-09-06": [
-    "mattpocock/skills",
-    "affaan-m/ECC",
-    "DietrichGebert/ponytail",
-    "NousResearch/hermes-agent",
-    "anthropics/skills",
-    "cathrynlavery/diagram-design",
-    "anomalyco/opencode",
-    "ruvnet/ruflo",
-    "humanlayer/skills",
-    "blader/humanizer",
-    "WorldFlowAI/everything-claude-code",
-    "magnitudedev/magnitude"
-  ],
-  "2026-09-07": [
-    "affaan-m/ECC",
-    "mattpocock/skills",
-    "cathrynlavery/diagram-design",
-    "NousResearch/hermes-agent",
-    "anomalyco/opencode",
-    "ruvnet/ruflo",
-    "coreyhaines31/marketingskills",
-    "humanlayer/skills"
+  "2026-09-20": [
+    "cloudflare/security-audit-skill",
+    "trycua/cua",
+    "addyosmani/agent-skills",
+    "coder/coder",
+    "anthropics/claude-code",
+    "docling-project/docling",
+    "anthropics/knowledge-work-plugins",
+    "cactus-compute/needle"
   ]
 }

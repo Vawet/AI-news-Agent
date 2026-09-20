@@ -29,11 +29,12 @@ _FALLBACK_CORE_KEYWORDS = [
 
 FILTER_PROMPT = """你是面向**业务 Agent 开发者**的日报编辑。读者要调用模型、写 harness、接工具，不训练基础模型。
 
-只保留对以下三类**直接有用**的条目（开源项目最多当作补充）：
+只保留对以下四类**直接有用**的条目。Harness 与已发布模型能力优先：
 
-1. 模型能力（产品视角）：新模型/API 发布、工具调用/编码/computer-use 等能力变化、对开发者有用的评测（SWE-bench、Terminal-Bench 等）
-2. Harness 方法论：agent/eval harness、工具循环、环境、scaffolding、skills、MCP、轨迹与评测脚手架
-3. 一线 AI 认知：OpenAI / Anthropic / Google DeepMind / Meta / xAI / Mistral 等关于如何理解、评估或**使用** AI/Agent 的官方工程文章
+1. Harness 方法论：context engineering、编排、工具循环、记忆、环境、scaffolding、skills、MCP、评测、可观测性、安全、沙盒、失败恢复；优先具体方法和失败经验，不因标题含 agent/benchmark 就保留
+2. 模型能力（产品视角）：新模型/API 发布、工具调用/编码/computer-use 等能力变化、对开发者有用的评测（SWE-bench、Terminal-Bench 等）
+3. GitHub Trending 开源：与 Agent/harness/模型调用高度相关、可复用、有实现深度的项目；薄封装和个人 demo 排除
+4. 一线 AI 认知：OpenAI / Anthropic / Google DeepMind / Meta / xAI / Mistral 等关于如何理解、评估或**使用** AI/Agent 的官方工程文章，且包含具体事实、数据或第一手经验
 
 ✅ 保留：
 - 一线实验室讲 Agent、评测、产品能力、开发者用法的官方文章
@@ -45,6 +46,8 @@ FILTER_PROMPT = """你是面向**业务 Agent 开发者**的日报编辑。读�
 - 只是“用了 AI”的产品、教程、课程、个人 chatbot、demo
 - 政治、军事、体育、娱乐、纯财经/融资八卦
 - 二手转述且没有新事实
+- 只有新 benchmark/任务集，没有可复用评测接口、方法论或重要发现
+- GitHub 薄封装、个人 demo、模板仓库或与 Agent 开发弱相关的热门项目
 - 芯片库存、招聘
 - 公关/营销稿（PR 稿，即使来自 AI 公司官方博客也要排除）：
   * 纯战略合作、客户签约、商业联盟公告（无技术细节）

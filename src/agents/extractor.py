@@ -37,14 +37,20 @@ Return a JSON object with these fields:
 CRITICAL: Readers are **business AI Agent developers**. They use models; they do not train them.
 
 Score the four pillars first:
-1. Model capabilities as a product (API, tool-use, coding, computer-use) — NOT pretrain/post-train/architecture research
-2. Harness methodology (agent/eval harnesses, tool loops, environments, scaffolding, MCP, skills)
-3. GitHub Trending-level AI OSS worth recommending (harnesses/runtimes/SDKs, not AI wrappers)
-4. Official frontier-lab cognition about agents, eval, or product use
+1. Harness methodology (context engineering, orchestration, tool loops, memory,
+   eval infrastructure, environments, observability, security, MCP, skills,
+   sandboxes, and failure recovery). Prefer reusable methods and failure lessons
+   over a benchmark announcement that only adds tasks or scores.
+2. Model capabilities as a shipped product (API, tool-use, coding, computer-use,
+   context, multimodality, latency/cost) — NOT pretrain/post-train/architecture research.
+3. GitHub Trending-level AI OSS worth recommending (harnesses/runtimes/SDKs,
+   not thin wrappers or personal demos; at most three can appear in the briefing).
+4. Official frontier-lab cognition about agents, eval, or product use. Preserve
+   its non-obvious core claim and concrete evidence rather than generic PR language.
 
 Importance scoring rules (be consistent):
-- 9-10: Frontier model agentic capability, a harness that changes practice, or a major official agent/eval essay
-- 7-8: Usable developer eval, reusable harness, official developer update, or a trending OSS repo an agent team should open
+- 9-10: A harness method that changes practice, frontier model agentic capability, or a major evidence-backed official agent/eval essay
+- 7-8: Reusable harness/eval infrastructure, official developer update, or a highly relevant trending OSS repo an agent team should open
 - 5-6: Incremental API/tool update or second-hand recap
 - 3-4: Generic AI product, tutorial, demo, or **pre-training / post-training / RLHF research**
 - 1-2: Off-pillar content (politics, sports, finance gossip, "I built a chatbot") — score 1-2 regardless of platform popularity

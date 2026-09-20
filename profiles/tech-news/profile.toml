@@ -1,5 +1,5 @@
 name = "tech-news"
-description = "面向业务 Agent 开发：模型能力 > Harness 方法论 > 大厂一线 AI 认知；开源最多 2 条；排除预训练/后训练与公关稿"
+description = "面向业务 Agent 开发：Harness 方法论与模型能力优先，其次是一线官方 AI 认知；GitHub Trending 高相关项目最多 3 条；排除训练研究与公关稿"
 threshold = 7.0
 max_items = 15
 
@@ -7,5 +7,11 @@ max_items = 15
 "Model Capabilities" = 6
 "Harness Methodology" = 7
 "AI Insights" = 4
-"Open Source" = 2
+"Open Source" = 3
 "Other" = 1
+
+# 仅从达到 threshold 的候选中保底；没有合格条目时不凑数。
+[category_minimums]
+"Harness Methodology" = 2
+"Model Capabilities" = 1
+"AI Insights" = 1
