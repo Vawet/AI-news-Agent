@@ -19,21 +19,14 @@ application.
 
 ## 2. Build and push the image
 
-Do not build `linux/amd64` on Apple Silicon. Use GitHub Actions
-(`.github/workflows/build-acr-image.yml`) on `ubuntu-latest`, or any native
-amd64 host.
+Do not build `linux/amd64` on Apple Silicon. Use a native amd64 host that can
+resolve the ACR instance, typically a machine in the same VPC as
+`kntech-registry-vpc.ap-southeast-1.cr.aliyuncs.com`.
 
-Required GitHub Actions secrets:
-
-```text
-ACR_REGISTRY=kntech-registry.ap-southeast-1.cr.aliyuncs.com
-ACR_NAMESPACE=kntech-dev
-ACR_USERNAME
-ACR_PASSWORD
-```
-
-Use the **public** ACR hostname in GitHub Actions. SAE still pulls the same
-image through the VPC hostname.
+GitHub-hosted runners cannot push to this instance: the registry hostname is
+VPC-only (public DNS returns NXDOMAIN). `.github/workflows/build-acr-image.yml`
+works only after internet access is enabled on the ACR instance and
+`ACR_REGISTRY` is the public hostname.
 
 Manual build from an amd64 host:
 
