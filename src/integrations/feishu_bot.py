@@ -1,11 +1,10 @@
-"""Feishu group mention handling through the official long-connection SDK."""
+"""Feishu application-bot message parsing and outbound delivery."""
 
 from __future__ import annotations
 
 import asyncio
 import json
 import logging
-import threading
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
@@ -74,7 +73,6 @@ class FeishuBot:
         self._allowed_chat_ids = allowed_chat_ids
         self._on_trigger = on_trigger
         self._event_loop = event_loop
-        self._thread: threading.Thread | None = None
         self._api_client = None
 
     @property
@@ -85,15 +83,14 @@ class FeishuBot:
             and self._allowed_chat_ids
         )
 
-    def start(self) -> None:
+    def initialize(self) -> None:
         if not self.configured:
             logger.warning("Feishu bot is disabled: missing app credentials or chat allowlist")
             return
-        if self._thread and self._thread.is_alive():
+        if self._api_client is not None:
             return
 
         import lark_oapi as lark
-        from lark_oapi.api.im.v1 import P2ImMessageReceiveV1
 
         self._api_client = (
             lark.Client.builder()
@@ -101,35 +98,18 @@ class FeishuBot:
             .app_secret(self._app_secret)
             .build()
         )
+        logger.info("Feishu application-bot API client initialized")
 
-        def handle_message(data: P2ImMessageReceiveV1) -> None:
-            message = _event_to_message(data)
-            if not should_trigger(message, self._allowed_chat_ids):
-                return
-            future = asyncio.run_coroutine_threadsafe(
-                self._on_trigger(message),
-                self._event_loop,
-            )
-            future.add_done_callback(self._log_handler_error)
-
-        dispatcher = (
-            lark.EventDispatcherHandler.builder("", "")
-            .register_p2_im_message_receive_v1(handle_message)
-            .build()
+    def handle_event(self, event_data) -> None:
+        """Schedule an allowed Feishu message on the service event loop."""
+        message = _event_to_message(event_data)
+        if not should_trigger(message, self._allowed_chat_ids):
+            return
+        future = asyncio.run_coroutine_threadsafe(
+            self._on_trigger(message),
+            self._event_loop,
         )
-        ws_client = lark.ws.Client(
-            self._app_id,
-            self._app_secret,
-            event_handler=dispatcher,
-            log_level=lark.LogLevel.INFO,
-        )
-        self._thread = threading.Thread(
-            target=ws_client.start,
-            name="feishu-long-connection",
-            daemon=True,
-        )
-        self._thread.start()
-        logger.info("Feishu long connection started")
+        future.add_done_callback(self._log_handler_error)
 
     @staticmethod
     def _log_handler_error(future) -> None:

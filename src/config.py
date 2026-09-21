@@ -76,9 +76,11 @@ class Settings(BaseSettings):
     smtp_from: str = ""
     newsletter_recipients: str = ""
 
-    # Feishu application bot (long connection, not a custom-bot webhook)
+    # Feishu application bot (HTTP event callback, not a custom-bot webhook)
     feishu_app_id: str = ""
     feishu_app_secret: str = ""
+    feishu_verification_token: str = ""
+    feishu_encrypt_key: str = ""
     feishu_allowed_chat_ids: str = ""
     feishu_target_chat_id: str = ""
     feishu_trigger_cooldown_seconds: int = 3600

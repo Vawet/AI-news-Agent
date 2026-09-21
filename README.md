@@ -392,7 +392,7 @@ docker run --rm --env-file .env -p 8080:8080 ai-news-agent
 
 The cloud service runs every Wednesday and Sunday at 10:00
 `Asia/Shanghai`, receives allowlisted Feishu group `@bot` mentions through
-the official long connection, and uploads reports to Alibaba Cloud OSS.
+the official HTTP event callback, and uploads reports to Alibaba Cloud OSS.
 See [the SAE deployment guide](docs/deploy-sae.md).
 
 ### GitHub Pages (Static Site)

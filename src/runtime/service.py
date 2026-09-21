@@ -8,10 +8,11 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 
 from src.config import settings
 from src.integrations.feishu_bot import FeishuBot, FeishuMessage
+from src.integrations.feishu_http import FeishuHTTPEventDispatcher
 from src.runtime.coordinator import RunCoordinator, RunResult, TriggerRequest
 from src.runtime.pipeline import CloudPipelineRunner
 from src.runtime.scheduler import SCHEDULE_TIMEZONE, build_schedule_trigger
@@ -51,6 +52,8 @@ def _validate_runtime_settings() -> None:
         "AI_GATEWAY_BASE_URL": settings.ai_gateway_base_url,
         "FEISHU_APP_ID": settings.feishu_app_id,
         "FEISHU_APP_SECRET": settings.feishu_app_secret,
+        "FEISHU_VERIFICATION_TOKEN": settings.feishu_verification_token,
+        "FEISHU_ENCRYPT_KEY": settings.feishu_encrypt_key,
         "FEISHU_ALLOWED_CHAT_IDS": settings.feishu_allowed_chats,
         "FEISHU_TARGET_CHAT_ID": settings.feishu_target_chat_id,
     }
@@ -86,7 +89,12 @@ async def _send_terminal_message(
 
 
 def create_app() -> FastAPI:
-    state: dict = {"ready": False, "scheduler": None, "bot": None}
+    state: dict = {
+        "ready": False,
+        "scheduler": None,
+        "bot": None,
+        "event_dispatcher": None,
+    }
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -121,6 +129,12 @@ def create_app() -> FastAPI:
             on_trigger=handle_feishu,
             event_loop=event_loop,
         )
+        bot.initialize()
+        event_dispatcher = FeishuHTTPEventDispatcher(
+            encrypt_key=settings.feishu_encrypt_key,
+            verification_token=settings.feishu_verification_token,
+            message_handler=bot.handle_event,
+        )
 
         async def run_scheduled() -> None:
             now = datetime.now(ZoneInfo(SCHEDULE_TIMEZONE))
@@ -148,8 +162,14 @@ def create_app() -> FastAPI:
             misfire_grace_time=3600,
         )
         scheduler.start()
-        bot.start()
-        state.update({"ready": True, "scheduler": scheduler, "bot": bot})
+        state.update(
+            {
+                "ready": True,
+                "scheduler": scheduler,
+                "bot": bot,
+                "event_dispatcher": event_dispatcher,
+            }
+        )
         logger.info("Cloud runtime ready; schedule=%s", build_schedule_trigger())
         try:
             yield
@@ -158,6 +178,26 @@ def create_app() -> FastAPI:
             scheduler.shutdown(wait=False)
 
     app = FastAPI(title="AI News Agent", lifespan=lifespan)
+
+    @app.post("/feishu/events")
+    async def receive_feishu_event(request: Request) -> Response:
+        dispatcher = state["event_dispatcher"]
+        if dispatcher is None:
+            return Response(
+                content=b'{"msg":"service not ready"}',
+                status_code=503,
+                media_type="application/json",
+            )
+        result = dispatcher.dispatch(
+            uri=request.url.path,
+            headers=request.headers,
+            body=await request.body(),
+        )
+        return Response(
+            content=result.content,
+            status_code=result.status_code,
+            headers=result.headers,
+        )
 
     @app.get("/health")
     async def health() -> dict:
