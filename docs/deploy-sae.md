@@ -12,8 +12,10 @@ claims prevent duplicate scheduled or retried event runs.
    sending messages as the bot (`im.message.receive_v1`).
 4. Configure event subscription with **Request URL** mode and subscribe to
    `im.message.receive_v1`.
-5. Set the request URL to the concat-admin proxy endpoint:
-   `https://concat-admin.dev.knoffice.tech/api/v1/webhooks/feishu/ai-news`.
+5. Set the request URL to the public tunnel hostname:
+   `https://feishu-ai-news.concat.pro/feishu/events`.
+   `*.dev.knoffice.tech` is VPC-only (public DNS returns NXDOMAIN), so an
+   internal hostname cannot serve as a Feishu request URL.
 6. Publish the application version and add the bot to the target group.
 7. Record the App ID, App Secret, Verification Token, Encrypt Key, and target
    group `chat_id`.
@@ -50,6 +52,11 @@ Do not bake `.env`, tokens, SSH keys, or cloud credentials into the image.
 - Sidecar name: `ai-news-agent`
 - Network: outbound internet for news sources and Feishu, plus network access
   to the configured internal AI Gateway endpoint
+
+Feishu reaches this container through a second sidecar, `cloudflared`, which
+dials out to Cloudflare and publishes `feishu-ai-news.concat.pro`. No inbound
+port is opened on the VPC, and the tunnel's ingress rules expose only
+`/feishu/events`; every other path returns 404 at the Cloudflare edge.
 
 Configure these values as SAE secrets/environment variables:
 
@@ -88,10 +95,12 @@ A dedicated service token remains preferable when the gateway supports one.
 
 1. Confirm the sidecar `GET /health` returns `ok: true` and
    `feishu_configured: true`.
-2. Complete Feishu request URL verification through concat-admin.
-3. Mention the bot in the allowlisted group.
-4. Confirm the immediate acknowledgement appears.
-5. Confirm a result card with an OSS link appears after the pipeline finishes.
-6. Repeat the same event and verify no second model run is dispatched.
-7. Verify the scheduler shows Wednesday and Sunday at 10:00
+2. Confirm `curl -sS https://feishu-ai-news.concat.pro/feishu/events` reaches
+   the sidecar from the public internet, and that any other path returns 404.
+3. Complete Feishu request URL verification.
+4. Mention the bot in the allowlisted group.
+5. Confirm the immediate acknowledgement appears.
+6. Confirm a result card with an OSS link appears after the pipeline finishes.
+7. Repeat the same event and verify no second model run is dispatched.
+8. Verify the scheduler shows Wednesday and Sunday at 10:00
    `Asia/Shanghai`.
