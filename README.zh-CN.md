@@ -385,12 +385,16 @@ GIT_REPO=your-username/ai-news-agent
 docker build -t ai-news-agent .
 
 # 2. 单次运行
-docker run --rm --env-file .env -v ./output:/app/output ai-news-agent
+docker run --rm --env-file .env -v ./output:/app/output \
+  ai-news-agent python scripts/run_pipeline.py
 
-# 3. 定时运行（通过 docker-compose）
-# 编辑 docker-compose.yml 中的 image 为你构建的镜像名
-docker compose up -d
+# 3. 云端常驻服务（镜像默认命令）
+# 健康检查：http://localhost:8080/health
+docker run --rm --env-file .env -p 8080:8080 ai-news-agent
 ```
+
+云端服务会在北京时间每周三、周日 10:00 自动运行，通过飞书官方 HTTP 事件回调接收白名单群聊中的
+`@机器人` 消息，并把生成报告上传到阿里云 OSS。部署步骤见 [SAE 部署说明](docs/deploy-sae.md)。
 
 ### GitHub Pages 静态站部署
 

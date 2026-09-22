@@ -382,12 +382,18 @@ A Dockerfile is provided, but no pre-built image is published yet — you need t
 docker build -t ai-news-agent .
 
 # 2. Single run
-docker run --rm --env-file .env -v ./output:/app/output ai-news-agent
+docker run --rm --env-file .env -v ./output:/app/output \
+  ai-news-agent python scripts/run_pipeline.py
 
-# 3. Scheduled run (via docker-compose)
-# Edit the image name in docker-compose.yml to your local build
-docker compose up -d
+# 3. Cloud service (default command)
+# Health: http://localhost:8080/health
+docker run --rm --env-file .env -p 8080:8080 ai-news-agent
 ```
+
+The cloud service runs every Wednesday and Sunday at 10:00
+`Asia/Shanghai`, receives allowlisted Feishu group `@bot` mentions through
+the official HTTP event callback, and uploads reports to Alibaba Cloud OSS.
+See [the SAE deployment guide](docs/deploy-sae.md).
 
 ### GitHub Pages (Static Site)
 

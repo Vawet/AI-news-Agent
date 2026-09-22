@@ -10,6 +10,7 @@ from langchain_openai import ChatOpenAI
 
 from src.config import settings
 from src.graph.state import PipelineState
+from src.llm.client import build_chat_model
 
 logger = logging.getLogger(__name__)
 
@@ -37,18 +38,14 @@ TRANSLATE_PROMPT = """你是一位专业的 AI 新闻翻译。请将以下英文
 
 def _build_llm() -> ChatOpenAI:
     # 翻译优先使用独立配置的模型，否则复用全局模型
-    model = settings.translate_model or settings.openai_model
-    api_key = settings.translate_api_key or settings.openai_api_key
-    base_url = settings.translate_base_url or settings.openai_base_url
-    kwargs = {
-        "model": model,
-        "max_tokens": 32768,
-    }
-    if api_key:
-        kwargs["api_key"] = api_key
-    if base_url:
-        kwargs["base_url"] = base_url
-    return ChatOpenAI(**kwargs)
+    if not settings.translate_api_key:
+        return build_chat_model(max_tokens=32768)
+    return ChatOpenAI(
+        model=settings.translate_model or settings.openai_model,
+        api_key=settings.translate_api_key,
+        base_url=settings.translate_base_url or settings.openai_base_url or None,
+        max_tokens=32768,
+    )
 
 
 def _postprocess_zh_markdown(content: str) -> str:
@@ -90,8 +87,7 @@ async def translate_to_chinese(
     report_mode: str = "daily",
 ) -> str | None:
     """将英文简报 markdown 翻译为中文"""
-    api_key = settings.translate_api_key or settings.openai_api_key
-    if not api_key:
+    if not (settings.translate_api_key or settings.llm_configured):
         logger.info("LLM not configured, skipping Chinese translation")
         return None
 

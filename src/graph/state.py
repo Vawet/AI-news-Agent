@@ -31,6 +31,9 @@ class PipelineState(TypedDict):
     # Stage 5: Writer 输出
     article: Optional[GeneratedArticle]
 
+    # Stage 6: Publisher 输出（落地文件路径，供云端上传产物）
+    artifact_paths: Annotated[list[str], _replace_list]
+
     # Pipeline 元数据
     run_id: str
     run_started_at: str

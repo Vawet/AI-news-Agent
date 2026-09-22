@@ -10,6 +10,7 @@ from langchain_openai import ChatOpenAI
 
 from src.config import settings
 from src.graph.state import PipelineState
+from src.llm.client import build_chat_model
 from src.models import ExtractedItem, SourceType
 from src.scoring.profiles import ScoringProfile, get_profile, load_profiles
 
@@ -26,18 +27,12 @@ _SUMMARY_LIMIT = 2000
 _COMMUNITY_LIMIT = 1800
 
 
-def _build_llm() -> ChatOpenAI:
-    kwargs = {
-        "model": settings.openai_model,
-        "max_tokens": 16384,
-        "temperature": 0,
-        "model_kwargs": {"response_format": {"type": "json_object"}},
-    }
-    if settings.openai_api_key:
-        kwargs["api_key"] = settings.openai_api_key
-    if settings.openai_base_url:
-        kwargs["base_url"] = settings.openai_base_url
-    return ChatOpenAI(**kwargs)
+def _build_llm():
+    return build_chat_model(
+        max_tokens=16384,
+        temperature=0,
+        model_kwargs={"response_format": {"type": "json_object"}},
+    )
 
 
 def _item_payload(index: int, item: ExtractedItem) -> dict:
@@ -313,7 +308,7 @@ async def scorer_node(state: PipelineState) -> dict:
     profiles = load_profiles()
     configured_profile = settings.scoring_profile.strip()
 
-    if not settings.openai_api_key:
+    if not settings.llm_configured:
         logger.warning("LLM not configured; preserving extraction scores without profile filtering")
         fallback = get_profile(
             "tech-news" if "tech-news" in profiles else next(iter(profiles)),

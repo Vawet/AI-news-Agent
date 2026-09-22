@@ -7,10 +7,9 @@
 import json
 import logging
 
-from langchain_openai import ChatOpenAI
-
 from src.config import settings
 from src.graph.state import PipelineState
+from src.llm.client import build_chat_model
 from src.models import ExtractedItem
 
 logger = logging.getLogger(__name__)
@@ -38,17 +37,11 @@ If no merges needed, return {{"groups": []}}. Return JSON only, no other text.
 {items_text}"""
 
 
-def _build_llm() -> ChatOpenAI:
-    kwargs = {
-        "model": settings.openai_model,
-        "max_tokens": 16384,
-        "model_kwargs": {"response_format": {"type": "json_object"}},
-    }
-    if settings.openai_api_key:
-        kwargs["api_key"] = settings.openai_api_key
-    if settings.openai_base_url:
-        kwargs["base_url"] = settings.openai_base_url
-    return ChatOpenAI(**kwargs)
+def _build_llm():
+    return build_chat_model(
+        max_tokens=16384,
+        model_kwargs={"response_format": {"type": "json_object"}},
+    )
 
 
 def _parse_merge_groups(raw: str) -> list[dict]:
@@ -173,7 +166,7 @@ async def reviewer_node(state: PipelineState) -> dict:
         logger.info(f"URL dedup: removed {len(url_dupes)}, remaining {len(extracted)}")
 
     # LLM 事件级合并
-    if not settings.openai_api_key:
+    if not settings.llm_configured:
         logger.info("LLM not configured, skipping event-level merge")
         return {"extracted_items": extracted}
 
