@@ -57,10 +57,13 @@ SOURCE_REGISTRY = {
 }
 
 
-def _build_sources(source_ids: list[str]):
+def _build_sources(source_ids: list[str], report_mode: str = "daily"):
     """根据配置构建数据源实例列表"""
     sources = []
     for sid in source_ids:
+        if sid == "github" and report_mode == "weekly":
+            sources.append(GitHubTrendingSource(since_period="weekly"))
+            continue
         factory = SOURCE_REGISTRY.get(sid)
         if factory:
             sources.extend(factory())
@@ -76,6 +79,29 @@ async def _fetch_one(source, since: datetime | None) -> list[RawItem]:
     except Exception as e:
         logger.error(f"{source.source_id} fetch failed: {e}")
         return []
+
+
+def _parse_boundary(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def _within_window(
+    item: RawItem,
+    start: datetime | None,
+    end: datetime | None,
+) -> bool:
+    """按发布时间做最终窗口约束；无发布时间的最新 feed 条目保留。"""
+    if item.published_at is None:
+        return True
+    published = item.published_at
+    if published.tzinfo is None:
+        published = published.replace(tzinfo=timezone.utc)
+    return (start is None or published > start) and (end is None or published <= end)
 
 
 def _quota_bucket(source_id: str) -> str:
@@ -155,22 +181,28 @@ def _smart_select(items_by_source: dict[str, list[RawItem]]) -> list[RawItem]:
 async def collector_node(state: PipelineState) -> dict:
     """Collector 节点：并行采集多个数据源，智能配额分配"""
     source_ids = state.get("sources_config", ["reddit"])
-    sources = _build_sources(source_ids)
+    sources = _build_sources(source_ids, state.get("report_mode", "daily"))
 
     if not sources:
         logger.warning("No data sources configured")
         return {"raw_items": [], "errors": ["No data sources configured"]}
 
-    logger.info(f"Collecting from sources: {[s.source_id for s in sources]}")
+    since = _parse_boundary(state.get("window_start"))
+    until = _parse_boundary(state.get("window_end"))
+    logger.info(
+        f"Collecting from sources: {[s.source_id for s in sources]} "
+        f"(window: {since or 'latest'} → {until or 'now'})"
+    )
 
     # 并行采集
-    tasks = [_fetch_one(s, since=None) for s in sources]
+    tasks = [_fetch_one(s, since=since) for s in sources]
     results = await asyncio.gather(*tasks)
 
     # 按源分组
     items_by_source: dict[str, list[RawItem]] = {}
     total_fetched = 0
     for source, items in zip(sources, results):
+        items = [item for item in items if _within_window(item, since, until)]
         src_key = _quota_bucket(source.source_id)  # "rss:openai_blog" 保持子源；"reddit:x" → "reddit"
         items_by_source.setdefault(src_key, []).extend(items)
         total_fetched += len(items)

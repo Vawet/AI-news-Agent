@@ -104,6 +104,8 @@ def test_fallback_dev_markdown_contains_required_sections():
     assert "## 已筛除条目说明" in result
     assert "BCIT post-training experience transfer" not in result
     assert "1 条" in result
+    assert "今日速览" in result
+    assert "`AI 8.0/10` · [来源-github](https://github.com/example/cc)" in result
 
 
 def test_extract_top_story_titles_only_reads_top_stories_section():
@@ -129,13 +131,22 @@ def test_extract_top_story_titles_only_reads_top_stories_section():
 
 def test_dev_source_label_follows_url_domain():
     markdown = (
-        "**AI 评分：8.7/10** 来源-huggingface — https://arxiv.org/abs/2609.20519\n"
-        "**AI 评分：7.0/10** 来源-hackernews — https://twitter.com/trq212/status/1\n"
-        "**AI 评分：7.8/10** 来源-hackernews — https://alignment.openai.com/reports/x/\n"
+        "`AI 8.7/10` · [来源-huggingface](https://arxiv.org/abs/2609.20519)\n"
+        "`AI 7.0/10` · [来源-hackernews](https://twitter.com/trq212/status/1)\n"
+        "`AI 7.8/10` · [来源-hackernews](https://alignment.openai.com/reports/x/)\n"
     )
 
     result = _normalize_dev_source_labels(markdown)
 
-    assert "来源-arxiv — https://arxiv.org/abs/2609.20519" in result
-    assert "来源-x — https://twitter.com/trq212/status/1" in result
-    assert "来源-rss — https://alignment.openai.com/reports/x/" in result
+    assert "[来源-arxiv](https://arxiv.org/abs/2609.20519)" in result
+    assert "[来源-x](https://twitter.com/trq212/status/1)" in result
+    assert "[来源-rss](https://alignment.openai.com/reports/x/)" in result
+
+
+def test_dev_plain_source_line_becomes_clickable_link():
+    markdown = "**AI 评分：8.7/10** 来源-huggingface — https://arxiv.org/abs/2609.20519"
+
+    result = _normalize_dev_source_labels(markdown)
+
+    assert "[来源-arxiv](https://arxiv.org/abs/2609.20519)" in result
+    assert " — https://arxiv.org" not in result

@@ -1,14 +1,14 @@
 """发布器测试"""
 
-import pytest
-
+from src.models import GeneratedArticle
+from src.publishers.markdown import _save_markdown
+from src.publishers.newsletter import NewsletterPublisher
 from src.publishers.webhook import (
-    WebhookPublisher,
-    SlackPublisher,
     DiscordPublisher,
     FeishuPublisher,
+    SlackPublisher,
+    WebhookPublisher,
 )
-from src.publishers.newsletter import NewsletterPublisher
 
 
 class TestWebhookPublisher:
@@ -62,3 +62,16 @@ class TestNewsletterPublisher:
         html = pub._markdown_to_html("# Hello\n\nWorld")
         assert "<h1>" in html or "<pre>" in html
         assert "AI News Agent" in html
+
+
+def test_weekly_markdown_uses_weekly_filename(tmp_path):
+    article = GeneratedArticle(
+        title="AI Weekly",
+        date="2026-09-23",
+        report_mode="weekly",
+        markdown_content="# AI Weekly",
+    )
+
+    path = _save_markdown(article, tmp_path)
+
+    assert path.name == "ai-weekly-2026-09-23.md"

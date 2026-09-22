@@ -1,12 +1,14 @@
 """数据源采集器测试"""
 
+from datetime import datetime, timezone
+
 import pytest
 
-from src.agents.collector import SOURCE_REGISTRY, _smart_select
+from src.agents.collector import SOURCE_REGISTRY, _smart_select, _within_window
 from src.models import RawItem, SourceType
-from src.sources.reddit import RedditRSSSource
-from src.sources.hackernews import HackerNewsSource
 from src.sources.arxiv import ArxivSource
+from src.sources.hackernews import HackerNewsSource
+from src.sources.reddit import RedditRSSSource
 
 
 def test_reddit_source_init():
@@ -91,4 +93,17 @@ def test_smart_select_caps_github_at_three():
     }
     selected = _smart_select(items_by_source)
     assert len(selected) == 3
+
+
+def test_window_is_start_exclusive_end_inclusive():
+    start = datetime(2026, 9, 20, 12, tzinfo=timezone.utc)
+    end = datetime(2026, 9, 23, 12, tzinfo=timezone.utc)
+
+    at_start = _github_item("org/start", 1)
+    at_start.published_at = start
+    at_end = _github_item("org/end", 1)
+    at_end.published_at = end
+
+    assert _within_window(at_start, start, end) is False
+    assert _within_window(at_end, start, end) is True
 

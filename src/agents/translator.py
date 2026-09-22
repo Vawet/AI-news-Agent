@@ -85,8 +85,11 @@ def _validate_translation(original: str, translated: str) -> list[str]:
     return warnings
 
 
-async def translate_to_chinese(markdown_en: str) -> str | None:
-    """将英文日报 markdown 翻译为中文"""
+async def translate_to_chinese(
+    markdown_en: str,
+    report_mode: str = "daily",
+) -> str | None:
+    """将英文简报 markdown 翻译为中文"""
     api_key = settings.translate_api_key or settings.openai_api_key
     if not api_key:
         logger.info("LLM not configured, skipping Chinese translation")
@@ -95,6 +98,12 @@ async def translate_to_chinese(markdown_en: str) -> str | None:
     try:
         llm = _build_llm()
         prompt = TRANSLATE_PROMPT.format(markdown=markdown_en)
+        if report_mode == "weekly":
+            prompt = (
+                prompt.replace("AI 日报", "AI 周报")
+                .replace("今日焦点", "本期焦点")
+                .replace('"AI 日报 — YYYY-MM-DD"', '"AI 周报 — YYYY-MM-DD"')
+            )
         resp = await llm.ainvoke(prompt)
         content = resp.content
 
@@ -125,7 +134,10 @@ async def translator_node(state: PipelineState) -> dict:
         return {}
 
     logger.info("Translating newsletter to Chinese ...")
-    zh_markdown = await translate_to_chinese(article.markdown_content)
+    zh_markdown = await translate_to_chinese(
+        article.markdown_content,
+        article.report_mode,
+    )
 
     if zh_markdown:
         article.markdown_content_zh = zh_markdown

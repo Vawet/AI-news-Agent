@@ -1,6 +1,5 @@
 """LangGraph Pipeline State 定义"""
 
-from datetime import datetime
 from typing import Annotated, Optional
 
 from langgraph.graph.message import add_messages
@@ -36,6 +35,9 @@ class PipelineState(TypedDict):
     run_id: str
     run_started_at: str
     sources_config: list[str]  # 本次运行采集的数据源 ID
+    report_mode: str  # daily / weekly
+    window_start: str  # ISO 8601；空字符串表示不限制
+    window_end: str  # ISO 8601；空字符串表示运行时刻
     errors: Annotated[list[str], _replace_list]
 
     # Agent 间通信

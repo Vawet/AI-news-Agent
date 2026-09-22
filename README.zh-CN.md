@@ -431,15 +431,21 @@ SCORING_PROFILE=tech-news  # 评分规则集名称；auto 会由 LLM 自动匹�
 SCORING_BATCH_SIZE=10      # 每次评分的资讯条数
 SCORING_MAX_ITEMS=20       # 通过阈值和分类配额后的总上限
 GITHUB_TRENDING_MAX_ITEMS=3  # GitHub 开源推荐上限
-REPORT_MODE=daily          # daily / weekly
+REPORT_MODE=weekly         # 周三/周日双周刊；daily 仍可手动运行
 LOG_LEVEL=INFO             # DEBUG 可看到详细采集日志
 ```
+
+`weekly` 按北京时间每周三、周日 20:00 运行，窗口首尾衔接且不重复：
+
+- 周三刊：上周日 20:00 之后至本周三 20:00
+- 周日刊：本周三 20:00 之后至本周日 20:00
 
 产出文件在 `output/`：
 
 - `ai-daily-YYYY-MM-DD.md`：英文专业版
 - `ai-daily-YYYY-MM-DD-zh.md`：中文专业版（翻译失败时可能缺这一份）
 - `ai-daily-YYYY-MM-DD-dev.md`：中文开发落地版，每条含【事实】（只复述候选信息）和【落地参考】（条件句建议）
+- 周报对应使用 `ai-weekly-YYYY-MM-DD*.md` 文件名
 
 ### 自定义评分 Profile
 

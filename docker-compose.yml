@@ -1,7 +1,7 @@
 version: "3.9"
 
 services:
-  # Pipeline 服务（定时运行，每天 08:00 CST = 00:00 UTC）
+  # Pipeline 服务（北京时间每周三、周日 20:00 = UTC 12:00）
   # 数据库使用外部 Neon PostgreSQL，无需本地 postgres
   agent:
     image: ${AGENT_IMAGE:-wyh0626/ai-news-agent:latest}
@@ -20,6 +20,6 @@ services:
       - ${SSH_KEY_PATH:-~/.ssh/id_ed25519}:/root/.ssh/id_ed25519:ro
     command: >
       bash -c "
-        echo '0 0 * * * cd /app && bash scripts/run_and_push.sh >> /app/output/pipeline.log 2>&1' | crontab - &&
+        echo '0 12 * * 3,0 cd /app && REPORT_MODE=weekly bash scripts/run_and_push.sh >> /app/output/pipeline.log 2>&1' | crontab - &&
         cron -f
       "

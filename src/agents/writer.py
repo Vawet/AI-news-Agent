@@ -113,6 +113,22 @@ DEV_WRITER_PROMPT = """你是一位面向「标准业务 Agent 开发者」的 A
 
 【核心认知】栏（仅 A3 官方一线条目）：主张和证据都必须来自候选 JSON，不得添加原文没有的结论强度。
 
+━━━━━━ 说人话（与严禁编造同等优先） ━━━━━━
+
+读者是做业务 Agent 的工程师，不是论文作者。他们看到不认识的缩写就会跳过整条，所以术语必须当场讲明白，不能原样搬运。
+
+- 术语第一次出现时，用括号补一句白话，说清它是什么、解决什么问题：
+  反例：多维 2PL 自适应测试在 200 题时达到 1.03 pp MAE
+  正例：自适应测试（按难度动态选题，用更少的题估出差不多准的分数）只用 200 题，估分误差约 1 个百分点
+- 能直接换成白话的，就不要保留原术语：
+  "KV cache 占用降到 1/4" → "推理时缓存占的显存降到四分之一"
+  "552B MoE" → "5520 亿参数的混合专家模型（每次推理只激活一部分参数，所以更省算力）"
+  "BANT 资格确认" → "销售线索资格确认（预算、决策权、需求、时间四项）"
+  "wire contract" → "服务之间约定的数据格式"
+- 模型名、产品名、API 名、公司名保留原文，不要翻译也不要解释（如 Claude Code、Qwen3.5、MCP）。
+- 解释一个公认术语属于常识补充，**不算编造**；但不得借解释之名，给该项目/论文添加它没有声称的能力、数据或适用场景。
+- 自检：每条写完问自己，一个没读过论文的后端工程师能不能复述出"这是什么、跟我的项目有什么关系"。答不上来就重写，别堆术语。
+
 ━━━━━━ 头条对齐 ━━━━━━
 
 专业版今天选出的头条如下（可能为空）：
@@ -126,29 +142,39 @@ DEV_WRITER_PROMPT = """你是一位面向「标准业务 Agent 开发者」的 A
 
 > 涵盖 {total_count} 条 AI 新闻资讯 · 每条包含【事实】与【落地参考】
 
+## ⚡ 今日速览
+
+- **一个词概括的主题**：一句话说清这批条目里最值得知道的结论
+- **一个词概括的主题**：一句话
+- **一个词概括的主题**：一句话
+
 ## 🔥 头条新闻
 
 ### 1. 标题（保留模型/产品名原文）
 
-**【事实】** 用大白话复述原文讲了什么，2-3 句，可以打比方，但不得超出原文信息
+**【事实】** 用大白话复述原文讲了什么，2-3 句；出现术语必须当场用括号讲明白，括号里的解释不计入句数
 
-**【落地参考】** 如果你的 Agent/项目遇到[XX]，可以考虑[YYY]（编辑建议，用条件句）
+**【落地参考】** 如果你的 Agent/项目遇到[XX]，可以考虑[YYY]（编辑建议，用条件句，最多 2 句）
 
-**AI 评分：x.x/10** 来源-xxx — url
+`AI 8.8/10` · [来源-xxx](url)
 
 ## 📰 专题报道
 
 ### 主题名
 
-- **标题**
-  **【事实】** ……
-  **【落地参考】** ……
-  **【核心认知】** ……（仅 A3 官方一线认知条目需要：一句核心主张 + 一句证据/启示）
-  **AI 评分：x.x/10** 来源-xxx — url
+#### 标题
+
+**【事实】** ……（最多 2 句）
+
+**【落地参考】** ……（最多 2 句）
+
+**【核心认知】** ……（仅 A3 官方一线认知条目需要：一句核心主张 + 一句证据/启示）
+
+`AI 8.0/10` · [来源-xxx](url)
 
 ## ⚡ 简讯
 
-- **标题** — 一句话。**AI 评分：x.x/10** 来源-xxx — url
+- **标题** — 一句话。`AI 7.0/10` · [来源-xxx](url)
 
 ---
 
@@ -166,13 +192,20 @@ DEV_WRITER_PROMPT = """你是一位面向「标准业务 Agent 开发者」的 A
 写作规则：
 1. 直接用中文生成，不先英后译
 2. 每条保留模型/产品名原文（如 Qwen3.5、Claude Code、Lean）
-3. 每条必须有【事实】+【落地参考】+ AI 评分 + 原文 URL；官方一线认知条目额外包含【核心认知】
-4. 语气平实口语、每条短；可以通俗，但不能为了通俗牺牲准确
+3. 每条必须有【事实】+【落地参考】+ AI 评分 + 原文链接；官方一线认知条目额外包含【核心认知】
+4. 语气平实口语、每条短；可以通俗，但不能为了通俗牺牲准确；宁可多花一个括号解释术语，也不要留下读者看不懂的缩写
 5. 筛除的 B 类不进正文，只在文末点名；不得把新模型/API 能力更新写进筛除说明
 6. Harness 条目要说明可复用方法或评测/运行方式；原文没给方法细节时，如实说明原文只到结论层面
 7. GitHub 项目最多 3 个，只描述候选 JSON 里写明的能力
 8. `来源-xxx` 的 xxx 直接用候选 JSON 的 source 字段，不要自行猜测
 9. 直接输出 Markdown，不要代码块包裹
+10. 可读性硬约束（违反即失败）：
+    - 「今日速览」放在头条之前，3-5 条，每条一行，让读者十秒内知道这批讲了什么；只能概括正文已出现的条目
+    - 头条用 `###`，专题报道的每条用 `####`，让专题在视觉上低于头条，不要把专题条目写成独立粗体段落
+    - 【事实】2-3 句、【落地参考】最多 2 句，写不下就删细节，不要堆成大段散文；但术语解释不能省
+    - 「今日速览」的每一行也必须是白话，不许出现未解释的缩写
+    - 来源行固定写成 `` `AI x.x/10` · [来源-xxx](url) ``，URL 只出现在链接里一次，正文不要再贴裸链接
+    - 能用中文表达的就用中文，只有模型名、产品名、API 名、专有技术名词才保留英文
 
 ## 候选新闻（共 {total_count} 条，已按 ai_score 降序）
 {items_json}"""
@@ -199,10 +232,15 @@ def _group_by_topic(items: list[ExtractedItem]) -> dict[str, list[ExtractedItem]
     return dict(groups)
 
 
-def _build_fallback_markdown(items: list[ExtractedItem], today: str) -> str:
+def _build_fallback_markdown(
+    items: list[ExtractedItem],
+    today: str,
+    report_mode: str = "daily",
+) -> str:
     """LLM 不可用时的降级模板渲染，与 LLM 输出格式保持一致"""
+    report_title = "AI Weekly" if report_mode == "weekly" else "AI Daily"
     lines = [
-        f"# AI Daily — {today}",
+        f"# {report_title} — {today}",
         "",
         f"> Covering {len(items)} AI news items",
         "",
@@ -264,7 +302,11 @@ def _build_fallback_markdown(items: list[ExtractedItem], today: str) -> str:
     return "\n".join(lines)
 
 
-def _build_fallback_dev_markdown(items: list[ExtractedItem], today: str) -> str:
+def _build_fallback_dev_markdown(
+    items: list[ExtractedItem],
+    today: str,
+    report_mode: str = "daily",
+) -> str:
     """LLM 不可用时的落地版降级模板，按 3.5 节规则筛除 B 类，保证含「事实/落地参考/趋势总结/已筛除说明」"""
     b_keywords = ["后训练", "微调", "对齐", "形式化", "神经编译", "经验回放", "奖励建模", "post-training", "fine-tun", "alignment", "autoformalization"]
     included, excluded = [], []
@@ -275,14 +317,23 @@ def _build_fallback_dev_markdown(items: list[ExtractedItem], today: str) -> str:
         else:
             included.append(item)
 
+    report_title = "AI 周报" if report_mode == "weekly" else "AI 日报"
+    period_word = "本期" if report_mode == "weekly" else "今日"
     lines = [
-        f"# AI 日报（开发落地版） — {today}",
+        f"# {report_title}（开发落地版） — {today}",
         "",
         f"> 涵盖 {len(items)} 条 AI 新闻资讯 · 每条包含【事实】与【落地参考】",
         "",
     ]
 
     top = included[:3]
+    if included:
+        lines.append(f"## ⚡ {period_word}速览")
+        lines.append("")
+        for item in included[:5]:
+            lines.append(f"- **{_dev_source_word(item)}**：{item.summary or item.title}")
+        lines.append("")
+
     if top:
         lines.append("## 🔥 头条新闻")
         lines.append("")
@@ -293,9 +344,7 @@ def _build_fallback_dev_markdown(items: list[ExtractedItem], today: str) -> str:
             lines.append("")
             lines.append(f"**【落地参考】** 如果你的 Agent/项目中遇到相关问题，可以参考这条：{item.ai_reason or '见原文'}")
             lines.append("")
-            origin = _origin_url(item)
-            src = _source_label_for_url(origin)
-            lines.append(f"**AI 评分：{item.ai_score:.1f}/10** 来源-{src} — {origin}")
+            lines.append(_dev_source_line(item))
             lines.append("")
 
     rest = included[3:]
@@ -303,37 +352,38 @@ def _build_fallback_dev_markdown(items: list[ExtractedItem], today: str) -> str:
         lines.append("## 📰 专题报道")
         lines.append("")
         for item in rest:
-            lines.append(f"- **{item.title}**")
-            lines.append(f"  **【事实】** {item.summary or item.title}")
-            lines.append(f"  **【落地参考】** {item.ai_reason or '见原文'}")
-            origin = _origin_url(item)
-            src = _source_label_for_url(origin)
-            lines.append(f"  **AI 评分：{item.ai_score:.1f}/10** 来源-{src} — {origin}")
-        lines.append("")
+            lines.append(f"#### {item.title}")
+            lines.append("")
+            lines.append(f"**【事实】** {item.summary or item.title}")
+            lines.append("")
+            lines.append(f"**【落地参考】** {item.ai_reason or '见原文'}")
+            lines.append("")
+            lines.append(_dev_source_line(item))
+            lines.append("")
 
     lines.append("## ⚡ 简讯")
     lines.append("")
-    lines.append("今日无简讯。")
+    lines.append(f"{period_word}无简讯。")
     lines.append("")
     lines.append("---")
     lines.append("")
     lines.append("## 开发趋势总结")
     lines.append("")
     if len(excluded) >= len(items) / 2:
-        lines.append("今日偏算法侧，业务 Agent 落地条目较少。")
+        lines.append(f"{period_word}偏算法侧，业务 Agent 落地条目较少。")
     else:
-        lines.append("今日条目以业务 Agent 工程为主，可直接落地。")
+        lines.append(f"{period_word}条目以业务 Agent 工程为主，可直接落地。")
     lines.append("")
     lines.append("## 已筛除条目说明")
     lines.append("")
     if excluded:
         lines.append(
-            f"今日共有 {len(excluded)} 条属模型训练/算法范畴（后训练、微调、对齐、形式化证明等），"
+            f"{period_word}共有 {len(excluded)} 条属模型训练/算法范畴（后训练、微调、对齐、形式化证明等），"
             f"已从正文筛除。"
             f"如团队有\"私有化开源模型 + 微调\"计划，可回看专业版 -zh.md 获取详情。"
         )
     else:
-        lines.append("今日无筛除条目。")
+        lines.append(f"{period_word}无筛除条目。")
     lines.append("")
 
     return "\n".join(lines)
@@ -370,15 +420,33 @@ def _normalize_source_links(markdown: str) -> str:
     return re.sub(r'\[([^\]]*)\]\((https?://[^\)]+)\)', replacer, markdown)
 
 
+def _dev_source_line(item: ExtractedItem) -> str:
+    """落地版来源行：评分 + 单个可点击链接，URL 不在正文重复出现。"""
+    origin = _origin_url(item)
+    return f"`AI {item.ai_score:.1f}/10` · [来源-{_source_label_for_url(origin)}]({origin})"
+
+
+def _dev_source_word(item: ExtractedItem) -> str:
+    """速览条目的主题词，优先用抽取出的 topic。"""
+    return item.topics[0] if item.topics else _source_label_for_url(_origin_url(item))
+
+
 def _normalize_dev_source_labels(markdown: str) -> str:
-    """落地版的「来源-xxx — url」同样按 URL 域名校正标签。"""
+    """落地版来源标签按 URL 域名校正，并把裸链接格式收敛为可点击链接。"""
     import re
 
-    def replacer(m):
+    def link_replacer(m):
         url = m.group(2)
-        return f"来源-{_source_label_for_url(url)} — {url}"
+        return f"[来源-{_source_label_for_url(url)}]({url})"
 
-    return re.sub(r'来源-([\w.-]+)\s*—\s*(https?://\S+)', replacer, markdown)
+    def plain_replacer(m):
+        url = m.group(2)
+        return f"[来源-{_source_label_for_url(url)}]({url})"
+
+    # 已是链接形式：只校正标签
+    markdown = re.sub(r'\[来源-([\w.-]+)\]\((https?://[^\)]+)\)', link_replacer, markdown)
+    # 旧的「来源-xxx — url」裸链接形式：一并收敛成链接
+    return re.sub(r'来源-([\w.-]+)\s*—\s*(https?://\S+)', plain_replacer, markdown)
 
 
 def _extract_top_story_titles(markdown: str) -> list[str]:
@@ -463,7 +531,11 @@ def _split_featured_brief(
     return featured, brief
 
 
-async def _generate_description(top3: list[ExtractedItem], date: str) -> tuple[str, str]:
+async def _generate_description(
+    top3: list[ExtractedItem],
+    date: str,
+    report_mode: str = "daily",
+) -> tuple[str, str]:
     """用 LLM 生成一句话日报摘要（英文+中文），降级时拼接标题"""
     fallback = " · ".join(
         (it.title[:40] + "...") if len(it.title) > 40 else it.title
@@ -473,9 +545,10 @@ async def _generate_description(top3: list[ExtractedItem], date: str) -> tuple[s
         return fallback, fallback
 
     headlines = "\n".join(f"- {it.title}" for it in top3)
+    period = "reporting period" if report_mode == "weekly" else "day"
     prompt = (
         f"Based on these top AI news headlines from {date}, write TWO concise summary sentences:\n"
-        f"1. ONE English sentence (max 25 words) capturing the day's most important AI developments.\n"
+        f"1. ONE English sentence (max 25 words) capturing the {period}'s most important AI developments.\n"
         f"2. ONE Chinese sentence (max 40 characters) translating/adapting the above.\n\n"
         f"Output ONLY two lines, no labels, no quotes:\n"
         f"Line 1: <English sentence>\n"
@@ -495,7 +568,7 @@ async def _generate_description(top3: list[ExtractedItem], date: str) -> tuple[s
 
 
 async def writer_node(state: PipelineState) -> dict:
-    """Writer 节点：生成每日新闻简报（重点展开 + 快讯速览）"""
+    """Writer 节点：生成新闻简报（重点展开 + 快讯速览）"""
     extracted = state.get("extracted_items", [])
     if not extracted:
         logger.warning("No extracted items, skipping writing")
@@ -515,7 +588,11 @@ async def writer_node(state: PipelineState) -> dict:
         logger.warning("No items above min_importance_score, skipping writing")
         return {"article": None}
 
-    today = (datetime.now(tz=timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
+    report_mode = state.get("report_mode", "daily")
+    if report_mode == "weekly" and state.get("window_end"):
+        today = datetime.fromisoformat(state["window_end"]).strftime("%Y-%m-%d")
+    else:
+        today = (datetime.now(tz=timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
     featured, brief = _split_featured_brief(extracted)
     threshold = featured[-1].ai_score if featured else 0
 
@@ -542,30 +619,38 @@ async def writer_node(state: PipelineState) -> dict:
                 featured_json=_items_to_json(featured),
                 brief_json=_items_to_json(brief, brief=True),
             )
+            if report_mode == "weekly":
+                prompt = (
+                    prompt.replace("AI daily newsletter", "AI twice-weekly newsletter")
+                    .replace("# AI Daily —", "# AI Weekly —")
+                    .replace("today", "this reporting period")
+                )
             resp = await llm.ainvoke(prompt)
             markdown = resp.content
+            if report_mode == "weekly":
+                markdown = markdown.replace("# AI Daily —", "# AI Weekly —", 1)
             # 完整性检查：LLM 可能截断，缺少章节则降级
             required_sections = ["Top Stories", "Quick Bites"]
             missing = [s for s in required_sections if s not in markdown]
             if missing:
                 logger.warning(f"LLM output incomplete, missing sections: {missing}, falling back to template")
-                markdown = _build_fallback_markdown(extracted, today)
+                markdown = _build_fallback_markdown(extracted, today, report_mode)
             else:
                 # LLM output link labels may not be uniform, use post-processing to correct
                 markdown = _normalize_source_links(markdown)
                 logger.info("LLM writing complete")
         except Exception as e:
             logger.error(f"LLM writing failed, falling back to template: {e}")
-            markdown = _build_fallback_markdown(extracted, today)
+            markdown = _build_fallback_markdown(extracted, today, report_mode)
     else:
         logger.info("LLM not configured, using template")
-        markdown = _build_fallback_markdown(extracted, today)
+        markdown = _build_fallback_markdown(extracted, today, report_mode)
 
     # 用 LLM 生成一句话 description（双语）
     markdown = _annotate_items(markdown, extracted)
 
     top3 = sorted(extracted, key=lambda x: x.ai_score, reverse=True)[:3]
-    description, description_zh = await _generate_description(top3, today)
+    description, description_zh = await _generate_description(top3, today, report_mode)
 
     # 落地版：第二路 LLM 生成，失败只打 warning，不影响专业版
     markdown_dev = ""
@@ -582,26 +667,36 @@ async def writer_node(state: PipelineState) -> dict:
                 ),
                 items_json=_items_to_json(extracted),
             )
+            if report_mode == "weekly":
+                dev_prompt = (
+                    dev_prompt.replace("日报", "周报")
+                    .replace("今天", "本期")
+                    .replace("今日", "本期")
+                    .replace("当日", "本期")
+                )
             dev_resp = await llm_dev.ainvoke(dev_prompt)
             markdown_dev = dev_resp.content
+            if report_mode == "weekly":
+                markdown_dev = markdown_dev.replace("# AI 日报", "# AI 周报", 1)
             if "已筛除条目说明" not in markdown_dev:
                 logger.warning("Dev version missing filter section, falling back")
-                markdown_dev = _build_fallback_dev_markdown(extracted, today)
+                markdown_dev = _build_fallback_dev_markdown(extracted, today, report_mode)
             else:
                 markdown_dev = _normalize_dev_source_labels(markdown_dev)
                 logger.info("Dev version writing complete")
         except Exception as e:
             logger.warning(f"Dev version LLM failed, falling back to template: {e}")
-            markdown_dev = _build_fallback_dev_markdown(extracted, today)
+            markdown_dev = _build_fallback_dev_markdown(extracted, today, report_mode)
     else:
         logger.info("LLM not configured, dev version using template")
-        markdown_dev = _build_fallback_dev_markdown(extracted, today)
+        markdown_dev = _build_fallback_dev_markdown(extracted, today, report_mode)
 
     description_dev = description_zh or description
 
     article = GeneratedArticle(
-        title=f"AI Daily — {today}",
+        title=f"AI {'Weekly' if report_mode == 'weekly' else 'Daily'} — {today}",
         date=today,
+        report_mode=report_mode,
         description=description,
         description_zh=description_zh,
         description_dev=description_dev,

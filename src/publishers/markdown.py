@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 
 def _save_markdown(article: GeneratedArticle, output_dir: Path) -> Path:
     """将文章保存为 Markdown 文件（带 frontmatter）"""
-    filename = f"ai-daily-{article.date}.md"
+    prefix = "ai-weekly" if article.report_mode == "weekly" else "ai-daily"
+    filename = f"{prefix}-{article.date}.md"
     filepath = output_dir / filename
 
     content = article.markdown_content
@@ -73,19 +74,21 @@ async def publish_node(state: PipelineState) -> dict:
     # 1. 始终保存 Markdown 文件
     output_dir = settings.output_path
     filepath = _save_markdown(article, output_dir)
+    prefix = "ai-weekly" if article.report_mode == "weekly" else "ai-daily"
+    zh_title = "AI 周报" if article.report_mode == "weekly" else "AI 日报"
 
     # 1.5 保存中文翻译版（如果有）
     if article.markdown_content_zh:
-        zh_filename = f"ai-daily-{article.date}-zh.md"
+        zh_filename = f"{prefix}-{article.date}-zh.md"
         zh_filepath = output_dir / zh_filename
-        en_slug = f"ai-daily-{article.date}"
-        zh_slug = f"ai-daily-{article.date}-zh"
+        en_slug = f"{prefix}-{article.date}"
+        zh_slug = f"{prefix}-{article.date}-zh"
         zh_desc = article.description_zh or article.description
         zh_desc_escaped = zh_desc.replace('"', '\\"')
         en_desc_escaped = article.description.replace('"', '\\"')
         zh_frontmatter = (
             f'---\n'
-            f'title: "AI 日报 — {article.date}"\n'
+            f'title: "{zh_title} — {article.date}"\n'
             f'description: "{zh_desc_escaped}"\n'
             f'lang: "zh"\n'
             f'pairSlug: "{en_slug}"\n'
@@ -106,16 +109,16 @@ async def publish_node(state: PipelineState) -> dict:
 
     # 1.6 保存开发落地版（如果有）
     if article.markdown_content_dev:
-        dev_filename = f"ai-daily-{article.date}-dev.md"
+        dev_filename = f"{prefix}-{article.date}-dev.md"
         dev_filepath = output_dir / dev_filename
         dev_desc = article.description_dev or article.description_zh or article.description
         dev_desc_escaped = dev_desc.replace('"', '\\"')
         dev_frontmatter = (
             f'---\n'
-            f'title: "AI 日报（开发落地版） — {article.date}"\n'
+            f'title: "{zh_title}（开发落地版） — {article.date}"\n'
             f'description: "{dev_desc_escaped}"\n'
             f'lang: "zh-dev"\n'
-            f'pairSlug: "ai-daily-{article.date}"\n'
+            f'pairSlug: "{prefix}-{article.date}"\n'
             f'---\n\n'
         )
         dev_filepath.write_text(dev_frontmatter + article.markdown_content_dev, encoding="utf-8")

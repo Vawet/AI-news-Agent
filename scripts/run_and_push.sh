@@ -13,11 +13,13 @@ echo "$LOG_PREFIX ===== AI News Pipeline Start $(date -u '+%Y-%m-%d %H:%M UTC') 
 echo "$LOG_PREFIX Project dir: $REPO_DIR"
 
 # 加载 .env 文件（服务器上需要）
+REPORT_MODE_OVERRIDE="${REPORT_MODE:-}"
 if [ -f "$REPO_DIR/.env" ]; then
     set -a
     source "$REPO_DIR/.env"
     set +a
 fi
+[ -n "$REPORT_MODE_OVERRIDE" ] && REPORT_MODE="$REPORT_MODE_OVERRIDE"
 
 # ---- 1. 运行 pipeline ----
 cd "$REPO_DIR"
@@ -28,7 +30,7 @@ elif [ -f "$REPO_DIR/venv/bin/activate" ]; then
     source "$REPO_DIR/venv/bin/activate"
 fi
 PYTHON=$(command -v python || command -v python3)
-$PYTHON scripts/run_pipeline.py
+$PYTHON scripts/run_pipeline.py --report-mode "${REPORT_MODE:-daily}"
 PIPELINE_EXIT=$?
 
 if [ $PIPELINE_EXIT -ne 0 ]; then
@@ -86,8 +88,10 @@ git add output/ site/src/content/blog/ 2>/dev/null || git add output/
 if git diff --cached --quiet; then
     echo "$LOG_PREFIX No new content, skipping push"
 else
-    DATE=$(date -u -d 'yesterday' +%Y-%m-%d 2>/dev/null || date -u -v-1d +%Y-%m-%d)
-    git commit -m "📰 AI Daily $DATE"
+    DATE=$(date -u +%Y-%m-%d)
+    REPORT_NAME="AI Daily"
+    [ "${REPORT_MODE:-daily}" = "weekly" ] && REPORT_NAME="AI Weekly"
+    git commit -m "📰 $REPORT_NAME $DATE"
     git pull --rebase origin main || true
     git push origin main
     echo "$LOG_PREFIX ✅ Push success"

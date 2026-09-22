@@ -1,5 +1,6 @@
 """Pipeline 入口脚本 - 运行一次完整的新闻采集→清洗→提取→撰稿流程"""
 
+import argparse
 import asyncio
 import logging
 import sys
@@ -10,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.config import settings
 from src.graph.workflow import compile_graph
+from src.reporting import twice_weekly_window
 
 
 def _default_sources() -> list[str]:
@@ -41,7 +43,12 @@ def setup_logging():
     logging.getLogger("openai").setLevel(logging.WARNING)
 
 
-async def main(sources: list[str] | None = None):
+async def main(
+    sources: list[str] | None = None,
+    report_mode: str | None = None,
+    window_start: str = "",
+    window_end: str = "",
+):
     setup_logging()
     logger = logging.getLogger("pipeline")
 
@@ -50,6 +57,11 @@ async def main(sources: list[str] | None = None):
     logger.info("=" * 60)
 
     graph = compile_graph()
+    mode = report_mode or settings.report_mode
+    if mode == "weekly" and not window_start:
+        window = twice_weekly_window()
+        window_start = window.start.isoformat()
+        window_end = window.end.isoformat()
 
     # 初始状态
     initial_state = {
@@ -61,6 +73,9 @@ async def main(sources: list[str] | None = None):
         "run_id": "",
         "run_started_at": "",
         "sources_config": sources or _default_sources(),
+        "report_mode": mode,
+        "window_start": window_start,
+        "window_end": window_end,
         "errors": [],
         "messages": [],
     }
@@ -88,6 +103,17 @@ async def main(sources: list[str] | None = None):
 
 
 if __name__ == "__main__":
-    # 支持命令行参数指定数据源
-    sources = sys.argv[1:] if len(sys.argv) > 1 else None
-    asyncio.run(main(sources))
+    parser = argparse.ArgumentParser(description="Run the AI news pipeline")
+    parser.add_argument("sources", nargs="*", help="Data source IDs (empty = defaults)")
+    parser.add_argument("--report-mode", choices=["daily", "weekly"], default=None)
+    parser.add_argument("--window-start", default="", help="ISO 8601 exclusive lower bound")
+    parser.add_argument("--window-end", default="", help="ISO 8601 inclusive upper bound")
+    args = parser.parse_args()
+    asyncio.run(
+        main(
+            sources=args.sources or None,
+            report_mode=args.report_mode,
+            window_start=args.window_start,
+            window_end=args.window_end,
+        )
+    )

@@ -8,5 +8,22 @@
     "docling-project/docling",
     "anthropics/knowledge-work-plugins",
     "cactus-compute/needle"
+  ],
+  "2026-09-21": [
+    "anthropics/claude-code",
+    "affaan-m/ECC",
+    "Tencent/WeKnora",
+    "addyosmani/agent-skills",
+    "anthropics/knowledge-work-plugins",
+    "mksglu/context-mode",
+    "max-sixty/worktrunk",
+    "blader/humanizer",
+    "stablyai/orca",
+    "Panniantong/Agent-Reach",
+    "heygen-com/hyperframes",
+    "danny-avila/LibreChat",
+    "ayghri/i-have-adhd",
+    "cline/cline",
+    "microsoft/markitdown"
   ]
 }

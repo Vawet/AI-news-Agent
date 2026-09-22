@@ -24,47 +24,27 @@ def setup_logging():
 logger = logging.getLogger("scheduler")
 
 
-async def run_daily_pipeline():
-    """每日 Pipeline: 全量采集 + 生成日报"""
+async def run_twice_weekly_pipeline():
+    """周三/周日 Pipeline：采集上一刊期之后的内容并生成周报。"""
     from scripts.run_pipeline import main as pipeline_main
 
-    logger.info("⏰ 触发每日 Pipeline ...")
+    logger.info("⏰ 触发周三/周日周报 Pipeline ...")
     try:
-        await pipeline_main(sources=["reddit", "hackernews", "arxiv", "github", "rss"])
+        await pipeline_main(
+            sources=[
+                "reddit",
+                "hackernews",
+                "arxiv",
+                "github",
+                "rss",
+                "huggingface",
+                "huggingface_spaces",
+                "anthropic",
+            ],
+            report_mode="weekly",
+        )
     except Exception as e:
-        logger.error(f"每日 Pipeline 失败: {e}")
-
-
-async def run_frequent_pipeline():
-    """高频 Pipeline: 仅采集 Reddit + HN（不一定生成文章）"""
-    from scripts.run_pipeline import main as pipeline_main
-
-    logger.info("⏰ 触发高频采集 ...")
-    try:
-        await pipeline_main(sources=["reddit", "hackernews"])
-    except Exception as e:
-        logger.error(f"高频采集失败: {e}")
-
-
-async def run_trend_report():
-    """周报: 生成趋势分析"""
-    logger.info("⏰ 触发周趋势报告 ...")
-    try:
-        from src.agents.trend_analyzer import generate_trend_report
-
-        report = await generate_trend_report(days=7)
-        if report:
-            output_dir = settings.output_path
-            from datetime import datetime, timezone
-
-            date_str = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
-            filepath = output_dir / f"ai-weekly-trend-{date_str}.md"
-            filepath.write_text(report, encoding="utf-8")
-            logger.info(f"趋势报告已保存: {filepath}")
-        else:
-            logger.info("趋势报告数据不足，跳过")
-    except Exception as e:
-        logger.error(f"趋势报告失败: {e}")
+        logger.error(f"周报 Pipeline 失败: {e}")
 
 
 async def run_memory_maintenance():
@@ -85,37 +65,23 @@ def main():
     try:
         from apscheduler.schedulers.asyncio import AsyncIOScheduler
         from apscheduler.triggers.cron import CronTrigger
-        from apscheduler.triggers.interval import IntervalTrigger
     except ImportError:
         logger.error("APScheduler 未安装。请运行: pip install apscheduler")
         sys.exit(1)
 
     scheduler = AsyncIOScheduler()
 
-    # 每日全量 Pipeline: 每天早上 8:00 UTC
+    # 北京时间每周三、周日 20:00；两次采集窗口首尾衔接且不重复。
     scheduler.add_job(
-        run_daily_pipeline,
-        CronTrigger(hour=8, minute=0),
-        id="daily_pipeline",
-        name="每日全量 Pipeline",
-        misfire_grace_time=3600,
-    )
-
-    # 高频采集: 每 30 分钟
-    scheduler.add_job(
-        run_frequent_pipeline,
-        IntervalTrigger(minutes=30),
-        id="frequent_pipeline",
-        name="高频采集 (Reddit + HN)",
-        misfire_grace_time=600,
-    )
-
-    # 周趋势报告: 每周日 20:00 UTC
-    scheduler.add_job(
-        run_trend_report,
-        CronTrigger(day_of_week="sun", hour=20, minute=0),
-        id="weekly_trend",
-        name="周趋势报告",
+        run_twice_weekly_pipeline,
+        CronTrigger(
+            day_of_week="wed,sun",
+            hour=20,
+            minute=0,
+            timezone="Asia/Shanghai",
+        ),
+        id="twice_weekly_pipeline",
+        name="周三/周日周报 Pipeline",
         misfire_grace_time=3600,
     )
 
