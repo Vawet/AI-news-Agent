@@ -1,4 +1,10 @@
-from src.agents.scorer import _item_payload, _parse_json_object, _select_items
+from src.agents.scorer import (
+    _item_payload,
+    _parse_json_object,
+    _select_items,
+    _select_with_floor,
+)
+from src.config import settings
 from src.models import ExtractedItem, SourceType
 from src.scoring.profiles import ScoringProfile, load_profiles
 
@@ -190,3 +196,85 @@ def test_open_source_category_requires_github_source():
     selected = _select_items([paper, repo], {"test": profile})
 
     assert [item.id for item in selected] == ["repo"]
+
+
+def _floor_profile(threshold: float = 7.0) -> ScoringProfile:
+    return ScoringProfile(
+        name="test",
+        description="test",
+        threshold=threshold,
+        max_items=20,
+        category_groups={"Agents": 20, "Other": 20},
+        analysis_prompt="",
+        match_prompt="",
+    )
+
+
+def test_threshold_offset_admits_items_below_the_bar():
+    profile = _floor_profile()
+    items = [_item("1", 6.5, "Agents", "Just below bar", "https://example.com/1")]
+
+    assert _select_items(items, {"test": profile}) == []
+    assert len(_select_items(items, {"test": profile}, threshold_offset=1.0)) == 1
+
+
+def test_select_with_floor_relaxes_until_the_briefing_is_viable(monkeypatch):
+    """合格条目不足时放宽阈值补位，而不是让整期空转不出报。"""
+    monkeypatch.setattr(settings, "min_items_to_write", 5)
+    monkeypatch.setattr(settings, "scoring_relax_step", 0.5)
+    monkeypatch.setattr(settings, "scoring_relax_floor", 5.0)
+
+    profile = _floor_profile()
+    # 只有 2 条达标，另外 3 条在 6.0-6.8 之间；标题互不相似以避开话题去重
+    items = [
+        _item("1", 8.0, "Agents", "Memory compaction for long sessions", "https://a.com/1"),
+        _item("2", 7.2, "Agents", "Sandboxing untrusted tool calls", "https://b.com/2"),
+        _item("3", 6.8, "Agents", "Retrieval latency benchmark writeup", "https://c.com/3"),
+        _item("4", 6.2, "Agents", "Prompt versioning in production", "https://d.com/4"),
+        _item("5", 6.0, "Agents", "Structured logging for tracing", "https://e.com/5"),
+    ]
+
+    selected = _select_with_floor(items, {"test": profile})
+
+    assert len(selected) == 5
+    # 补位进来的条目要被标出来，便于下游区分合格与凑数
+    below = [item.id for item in selected if "below-bar" in item.score_tags]
+    assert below == ["3", "4", "5"]
+
+
+def test_select_with_floor_never_digs_below_the_relax_floor(monkeypatch):
+    monkeypatch.setattr(settings, "min_items_to_write", 5)
+    monkeypatch.setattr(settings, "scoring_relax_step", 0.5)
+    monkeypatch.setattr(settings, "scoring_relax_floor", 5.0)
+
+    profile = _floor_profile()
+    # 全是 4.x 的噪声，放宽到地板也够不着，宁可少出也不放进来
+    noise_titles = [
+        "Weekly chatbot roundup",
+        "Startup raises funding",
+        "Opinion piece on hype",
+        "Conference keynote recap",
+        "Newsletter sponsor spot",
+        "Personal blog musings",
+    ]
+    items = [
+        _item(str(i), 4.5, "Agents", title, f"https://example.com/{i}")
+        for i, title in enumerate(noise_titles)
+    ]
+
+    assert _select_with_floor(items, {"test": profile}) == []
+
+
+def test_select_with_floor_is_a_noop_when_enough_items_qualify(monkeypatch):
+    monkeypatch.setattr(settings, "min_items_to_write", 2)
+
+    profile = _floor_profile()
+    items = [
+        _item("1", 9.0, "Agents", "Tool calling reliability study", "https://a.com/1"),
+        _item("2", 8.0, "Agents", "Eval harness ships replay mode", "https://b.com/2"),
+    ]
+
+    selected = _select_with_floor(items, {"test": profile})
+
+    assert [item.id for item in selected] == ["1", "2"]
+    assert all("below-bar" not in item.score_tags for item in selected)

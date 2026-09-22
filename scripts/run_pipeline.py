@@ -48,8 +48,11 @@ async def main(
     report_mode: str | None = None,
     window_start: str = "",
     window_end: str = "",
+    skip_github_dedup: bool = False,
 ):
     setup_logging()
+    if skip_github_dedup:
+        settings.github_trending_skip_dedup = True
     logger = logging.getLogger("pipeline")
 
     logger.info("=" * 60)
@@ -109,6 +112,11 @@ if __name__ == "__main__":
     parser.add_argument("--report-mode", choices=["daily", "weekly"], default=None)
     parser.add_argument("--window-start", default="", help="ISO 8601 exclusive lower bound")
     parser.add_argument("--window-end", default="", help="ISO 8601 inclusive upper bound")
+    parser.add_argument(
+        "--skip-github-dedup",
+        action="store_true",
+        help="Ignore the cross-day GitHub Trending cache (useful when re-running the same day)",
+    )
     args = parser.parse_args()
     asyncio.run(
         main(
@@ -116,5 +124,6 @@ if __name__ == "__main__":
             report_mode=args.report_mode,
             window_start=args.window_start,
             window_end=args.window_end,
+            skip_github_dedup=args.skip_github_dedup,
         )
     )

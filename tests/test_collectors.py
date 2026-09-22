@@ -95,6 +95,15 @@ def test_smart_select_caps_github_at_three():
     assert len(selected) == 3
 
 
+def test_quota_buckets_agree_between_source_and_item():
+    """保底与竞争阶段必须落在同一个 key，否则配额上限会被各记一份绕过。"""
+    from src.agents.collector import _item_quota_bucket, _quota_bucket
+
+    assert _quota_bucket("github_trending") == _item_quota_bucket(
+        _github_item("org/repo", 1)
+    )
+
+
 def test_window_is_start_exclusive_end_inclusive():
     start = datetime(2026, 9, 20, 12, tzinfo=timezone.utc)
     end = datetime(2026, 9, 23, 12, tzinfo=timezone.utc)

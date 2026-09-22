@@ -43,7 +43,8 @@ and not research novelty in training.
   should be built, with strong evidence.
 - 7-8 High value: reusable harness pattern, usable eval infrastructure, official developer
   update, or a trending OSS repo an agent team should open.
-- 5-6 Worth reading: incremental API/tool update, solid tutorial, second-hand recap.
+- 5-6 Worth reading: incremental API/tool update, solid tutorial, second-hand recap,
+  or a preprint that proposes a method but leaves the reader nothing to reuse.
 - 3-4 Low priority: generic AI product, demo, or **training-science paper**.
 - 0-2 Noise: ads/PR, off-topic, training recipes, architecture/pretrain/post-train
   deep dives, personal chatbots, wrapper demos.
@@ -61,6 +62,13 @@ authority, and engagement context together:
 7. Quality of community discussion
 8. Prefer reusable methods and failure lessons over a benchmark announcement
    that only contributes a score table or task set
+9. Penalize unvetted preprints. An arXiv paper reaches 7+ only when an agent team
+   could act on it: a recipe concrete enough to reimplement, released code, or a
+   transferable failure lesson. A paper that names a new method and reports gains
+   on its own benchmark, with no reusable procedure, scores at most 6 — readers
+   have never heard of it and cannot use it. Being recent is not value.
+   Shipped tools, official engineering write-ups, and maintained repos outrank
+   preprints when their practical value is comparable.
 
 Do not score from the title alone. Prefer concrete claims in the official summary
 and content brief. Platform engagement is context only — never a mechanical bonus.

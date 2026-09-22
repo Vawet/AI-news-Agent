@@ -63,25 +63,128 @@ class TestGitHubSource:
         assert source.source_id == "github_trending"
         assert source.default_interval == 14400
 
-    def test_select_trending_keeps_top_two_by_stars(self):
+    @staticmethod
+    def _repo(name: str, *, established=False, velocity=0.0, rank=999):
         from src.models import RawItem, SourceType
 
-        def repo(name: str, stars: int, rank: int) -> RawItem:
-            return RawItem(
-                source_type=SourceType.GITHUB,
-                source_id=f"github:{name}",
-                title=name,
-                url=f"https://github.com/{name}",
-                metadata={"stars_today": stars, "feed_rank": rank},
-            )
+        return RawItem(
+            source_type=SourceType.GITHUB,
+            source_id=f"github:{name}",
+            title=name,
+            url=f"https://github.com/{name}",
+            metadata={
+                "is_established": established,
+                "relative_velocity": velocity,
+                "feed_rank": rank,
+            },
+        )
 
+    def test_select_trending_puts_young_repos_before_established_giants(self):
         items = [
-            repo("org/low", 3, 1),
-            repo("org/mid", 20, 2),
-            repo("org/high", 80, 8),
+            # 巨无霸霸占榜首，且实测增速更高，仍要让位给新兴项目
+            self._repo("org/giant", established=True, velocity=0.9, rank=1),
+            self._repo("org/young", established=False, velocity=0.01, rank=9),
         ]
-        selected = GitHubTrendingSource._select_trending(items, 2)
-        assert [item.title for item in selected] == ["org/high", "org/mid"]
+        selected = GitHubTrendingSource._select_trending(items, 1)
+        assert [item.title for item in selected] == ["org/young"]
+
+    def test_select_trending_uses_measured_velocity_within_same_age_group(self):
+        items = [
+            self._repo("org/slow", velocity=0.01, rank=1),
+            self._repo("org/fast", velocity=0.90, rank=8),
+        ]
+        selected = GitHubTrendingSource._select_trending(items, 1)
+        assert [item.title for item in selected] == ["org/fast"]
+
+    def test_select_trending_falls_back_to_feed_rank_without_measured_growth(self):
+        items = [
+            self._repo("org/rank9", rank=9),
+            self._repo("org/rank2", rank=2),
+        ]
+        selected = GitHubTrendingSource._select_trending(items, 1)
+        assert [item.title for item in selected] == ["org/rank2"]
+
+    def test_relative_velocity_ranks_young_repo_above_established_giant(self):
+        # claude-code 量级：14.7 万星、周涨 1500
+        giant = GitHubTrendingSource._relative_velocity(147505, 1500)
+        # 新兴项目：3000 星、周涨 2000
+        rising = GitHubTrendingSource._relative_velocity(3000, 2000)
+        assert rising > giant
+
+    def test_relative_velocity_is_zero_when_baseline_is_missing(self):
+        """没有历史快照就是不知道增速，必须返回 0 交给 feed_rank，不能用年龄倒数假装。"""
+        assert GitHubTrendingSource._relative_velocity(3000, None) == 0.0
+        assert GitHubTrendingSource._relative_velocity(147505, None) == 0.0
+
+    def test_relative_velocity_handles_zero_stars(self):
+        assert GitHubTrendingSource._relative_velocity(0, 10) == 0.0
+
+    def test_measure_growth_uses_earliest_prior_snapshot(self):
+        snapshots = {"2026-09-15": 1000, "2026-09-18": 1500}
+        assert (
+            GitHubTrendingSource._measure_growth(snapshots, 3000, "2026-09-22") == 2000
+        )
+
+    def test_measure_growth_ignores_same_day_snapshot(self):
+        """同一天重跑不能把几分钟前的快照当基线，否则排序被噪声污染。"""
+        snapshots = {"2026-09-22": 2995}
+        assert GitHubTrendingSource._measure_growth(snapshots, 3000, "2026-09-22") is None
+
+    def test_measure_growth_returns_none_without_history(self):
+        assert GitHubTrendingSource._measure_growth({}, 3000, "2026-09-22") is None
+
+    def test_measure_growth_never_reports_negative(self):
+        snapshots = {"2026-09-15": 5000}
+        assert GitHubTrendingSource._measure_growth(snapshots, 4000, "2026-09-22") == 0
+
+    def test_ledger_migrates_legacy_cache_format(self, tmp_path, monkeypatch):
+        import json
+
+        from src.config import settings
+        from src.sources.github import TRENDING_CACHE_FILE
+
+        monkeypatch.setattr(settings, "output_dir", str(tmp_path))
+        legacy = {"2026-09-20": ["org/a"], "2026-09-21": ["org/a", "org/b"]}
+        (tmp_path / TRENDING_CACHE_FILE).write_text(json.dumps(legacy))
+
+        ledger = GitHubTrendingSource._load_ledger()
+
+        assert ledger["version"] == 2
+        assert ledger["seen"] == legacy
+        # 首次上榜日期取最早出现的那天
+        assert ledger["repos"]["org/a"]["first_seen"] == "2026-09-20"
+        assert ledger["repos"]["org/b"]["first_seen"] == "2026-09-21"
+
+    def test_ledger_drops_records_outside_retention_window(self, tmp_path, monkeypatch):
+        import json
+
+        from src.config import settings
+        from src.sources.github import TRENDING_CACHE_FILE
+
+        monkeypatch.setattr(settings, "output_dir", str(tmp_path))
+        monkeypatch.setattr(settings, "github_trending_dedup_days", 30)
+        ledger = {
+            "version": 2,
+            "seen": {"2020-01-01": ["org/ancient"], "2999-01-01": ["org/fresh"]},
+            "repos": {
+                "org/ancient": {"first_seen": "2020-01-01", "stars": {}},
+                "org/fresh": {"first_seen": "2999-01-01", "stars": {}},
+            },
+        }
+        GitHubTrendingSource._save_ledger(ledger)
+
+        saved = json.loads((tmp_path / TRENDING_CACHE_FILE).read_text())
+        assert "2020-01-01" not in saved["seen"]
+        assert "org/ancient" not in saved["repos"]
+        assert "org/fresh" in saved["repos"]
+
+    def test_age_days_from_github_timestamp(self):
+        from datetime import datetime, timezone
+
+        now = datetime(2026, 9, 22, tzinfo=timezone.utc)
+        assert GitHubTrendingSource._age_days("2026-09-12T00:00:00Z", now) == 10
+        assert GitHubTrendingSource._age_days("", now) == 0
+        assert GitHubTrendingSource._age_days("not-a-date", now) == 0
 
 
 

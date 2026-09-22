@@ -45,9 +45,12 @@ class Settings(BaseSettings):
     # 自定义 RSS 源（格式: name1=url1,name2=url2）
     rss_feeds: str = ""
 
-    # GitHub 趋势去重缓存天数；日报最多推荐 3 个高相关 trending 项目
-    github_trending_dedup_days: int = 3
+    # GitHub 上榜台账保留天数。周报每 3-4 天一期，窗口必须远大于刊期间隔，
+    # 否则常年霸榜的项目每期都会重新上榜。
+    github_trending_dedup_days: int = 30
     github_trending_max_items: int = 3
+    # 同一天反复手动重跑时，缓存会把所有项目判为重复；置 True 可临时绕过
+    github_trending_skip_dedup: bool = False
 
     # HuggingFace Papers
     hf_papers_min_upvotes: int = 5
@@ -120,6 +123,10 @@ class Settings(BaseSettings):
     # Profile 化资讯评分
     scoring_profile: str = "tech-news"  # profile 名称或 auto
     scoring_profiles_dir: str = "profiles"
+    # 合格条目不足 min_items_to_write 时逐级下调阈值补位，避免整期空转不出报。
+    # 不会低于 relax_floor——按打分标准 5 分以下已属"增量更新/二手转述"以下。
+    scoring_relax_step: float = 0.5
+    scoring_relax_floor: float = 5.0
     scoring_batch_size: int = 10
     scoring_max_concurrent: int = 3
     scoring_max_retries: int = 3

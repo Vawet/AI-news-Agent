@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 _ENGAGEMENT_KEYS = (
     "score", "points", "upvote_ratio", "num_comments", "comment_count",
     "comments", "likes", "retweets", "replies", "upvotes", "stars",
-    "stars_today", "feed_rank", "language",
+    "stars_gained", "repo_age_days", "feed_rank", "language",
 )
 
 _CONTENT_LIMIT = 2500
@@ -229,8 +229,13 @@ def _topic_similarity(left: ExtractedItem, right: ExtractedItem) -> float:
 def _select_items(
     items: list[ExtractedItem],
     profiles: dict[str, ScoringProfile],
+    threshold_offset: float = 0.0,
 ) -> list[ExtractedItem]:
-    """Reserve qualified pillar coverage, then apply caps, dedup, and global max."""
+    """Reserve qualified pillar coverage, then apply caps, dedup, and global max.
+
+    ``threshold_offset`` lowers every profile threshold by the given amount so a
+    thin week can still fill the briefing. Every other cap stays in force.
+    """
     selected: list[ExtractedItem] = []
     category_counts: dict[tuple[str, str], int] = {}
     profile_counts: dict[str, int] = {}
@@ -239,7 +244,7 @@ def _select_items(
     def try_add(item: ExtractedItem) -> bool:
         nonlocal github_count
         profile = profiles[item.scoring_profile]
-        if item.ai_score < profile.threshold:
+        if item.ai_score < profile.threshold - threshold_offset:
             return False
         category = _category_for(item, profile)
         count_key = (profile.name, category)
@@ -299,6 +304,54 @@ def _select_items(
     return sorted(selected, key=lambda item: item.ai_score, reverse=True)
 
 
+def _select_with_floor(
+    items: list[ExtractedItem],
+    profiles: dict[str, ScoringProfile],
+) -> list[ExtractedItem]:
+    """按阈值选稿；合格条目不够一期时逐级放宽，宁可标注也不要整期空转。"""
+    selected = _select_items(items, profiles)
+    floor = settings.min_items_to_write
+    if len(selected) >= floor or not profiles:
+        return selected
+
+    lowest_threshold = min(profile.threshold for profile in profiles.values())
+    max_offset = max(0.0, lowest_threshold - settings.scoring_relax_floor)
+    step = max(0.1, settings.scoring_relax_step)
+
+    offset = step
+    while offset <= max_offset:
+        relaxed = _select_items(items, profiles, threshold_offset=offset)
+        if len(relaxed) > len(selected):
+            selected = relaxed
+        if len(selected) >= floor:
+            break
+        offset += step
+
+    if len(selected) < floor:
+        logger.warning(
+            "Only %s items even after relaxing thresholds by %.1f; briefing may be skipped",
+            len(selected),
+            max_offset,
+        )
+        return selected
+
+    # 标记低于原阈值的补位条目，便于下游区分"合格"与"凑数"
+    backfilled = 0
+    for item in selected:
+        threshold = profiles[item.scoring_profile].threshold
+        if item.ai_score < threshold:
+            if "below-bar" not in item.score_tags:
+                item.score_tags.append("below-bar")
+            backfilled += 1
+    if backfilled:
+        logger.info(
+            "Relaxed scoring threshold to reach %s items (%s backfilled below bar)",
+            len(selected),
+            backfilled,
+        )
+    return selected
+
+
 async def scorer_node(state: PipelineState) -> dict:
     """Score extracted items with profiles and keep only briefing candidates."""
     items = state.get("extracted_items", [])
@@ -349,7 +402,7 @@ async def scorer_node(state: PipelineState) -> dict:
             tasks.append(score_limited(indexed_items[start:start + batch_size], profile))
     await asyncio.gather(*tasks)
 
-    selected = _select_items(items, profiles)
+    selected = _select_with_floor(items, profiles)
     logger.info(
         "Profile scoring: %s candidates → %s selected (profile=%s)",
         len(items),

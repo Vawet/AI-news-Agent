@@ -105,7 +105,11 @@ def test_fallback_dev_markdown_contains_required_sections():
     assert "BCIT post-training experience transfer" not in result
     assert "1 条" in result
     assert "今日速览" in result
-    assert "`AI 8.0/10` · [来源-github](https://github.com/example/cc)" in result
+    # 英文原标题降到来源行当链接文字，正文标题留给中文结论句
+    assert (
+        "`AI 8.0/10` · 来源-github · [Claude Code config](https://github.com/example/cc)"
+        in result
+    )
 
 
 def test_extract_top_story_titles_only_reads_top_stories_section():
@@ -150,3 +154,132 @@ def test_dev_plain_source_line_becomes_clickable_link():
 
     assert "[来源-arxiv](https://arxiv.org/abs/2609.20519)" in result
     assert " — https://arxiv.org" not in result
+
+
+def test_dev_source_label_corrected_without_clobbering_original_title():
+    markdown = (
+        "`AI 8.7/10` · 来源-huggingface · "
+        "[DENSE Distills Agent Trajectories](https://arxiv.org/abs/2609.21423)\n"
+    )
+
+    result = _normalize_dev_source_labels(markdown)
+
+    assert "来源-arxiv" in result
+    assert "[DENSE Distills Agent Trajectories](https://arxiv.org/abs/2609.21423)" in result
+
+
+def _must_read_fixture():
+    from src.agents.must_read import MustRead
+
+    return MustRead(
+        item=ExtractedItem(
+            id="1",
+            source_type=SourceType.RSS,
+            title="Linear Reworks CI to Handle AI Coding Bottleneck",
+            content="body",
+            url="https://linear.app/now/ci-bottleneck-reworked",
+            summary="CI rework",
+            ai_score=7.8,
+            scoring_profile="tech-news",
+        ),
+        headline_zh="Linear 重做 CI，合并等待从 6 分降到 5 分",
+        reason="有具体前后数据，改法可直接照搬。",
+        action="如果你的 CI 超过 5 分钟，可以先把 lint 和测试拆开计时。",
+    )
+
+
+def test_inject_must_read_goes_above_the_first_section():
+    from src.agents.writer import _inject_must_read
+
+    markdown = "# AI 周报（开发落地版） — 2026-09-22\n\n> 涵盖 7 条\n\n## ⚡ 本期速览\n\n- a\n"
+
+    result = _inject_must_read(markdown, _must_read_fixture(), "本期")
+
+    assert result.index("只看一条就看这个") < result.index("本期速览")
+    assert "Linear 重做 CI，合并等待从 6 分降到 5 分" in result
+    assert "**下一步：**" in result
+
+
+def test_inject_must_read_is_noop_without_a_pick():
+    from src.agents.writer import _inject_must_read
+
+    markdown = "# AI 周报\n\n## ⚡ 本期速览\n"
+
+    assert _inject_must_read(markdown, None, "本期") == markdown
+
+
+def test_items_to_json_includes_content_excerpt():
+    """写作模型必须拿到原文节选，只给 summary 会逼出阶段名罗列这类空话。"""
+    import json
+
+    from src.agents.writer import _items_to_json
+
+    item = ExtractedItem(
+        id="1",
+        source_type=SourceType.GITHUB,
+        title="Security audit skill",
+        content="The skill runs a structured audit in six phases, writing architecture.md "
+        "and coverage-ledger.json before dispatching isolated hunters.",
+        url="https://github.com/cloudflare/security-audit-skill",
+        summary="A coding-agent skill for multi-phase security audits.",
+        ai_score=8.5,
+        scoring_profile="tech-news",
+    )
+
+    payload = json.loads(_items_to_json([item]))
+
+    assert "coverage-ledger.json" in payload[0]["content_excerpt"]
+
+
+def test_content_excerpt_is_capped():
+    from src.agents.writer import _EXCERPT_LIMIT, _content_excerpt
+
+    item = ExtractedItem(
+        id="1",
+        source_type=SourceType.RSS,
+        title="Long post",
+        content="x" * 5000,
+        url="https://example.com/1",
+        summary="s",
+        scoring_profile="tech-news",
+    )
+
+    assert len(_content_excerpt(item)) == _EXCERPT_LIMIT
+
+
+def test_content_excerpt_prefers_enriched_full_content():
+    from src.agents.writer import _content_excerpt
+
+    item = ExtractedItem(
+        id="1",
+        source_type=SourceType.HACKERNEWS,
+        title="Post",
+        content="thin rss blurb",
+        url="https://example.com/1",
+        summary="s",
+        scoring_profile="tech-news",
+        metadata={"full_content": "the enriched article body"},
+    )
+
+    assert _content_excerpt(item) == "the enriched article body"
+
+
+def test_brief_items_stay_lean():
+    """简讯条目不带节选，避免为一句话的条目白烧 token。"""
+    import json
+
+    from src.agents.writer import _items_to_json
+
+    item = ExtractedItem(
+        id="1",
+        source_type=SourceType.RSS,
+        title="Minor update",
+        content="x" * 3000,
+        url="https://example.com/1",
+        summary="s",
+        scoring_profile="tech-news",
+    )
+
+    payload = json.loads(_items_to_json([item], brief=True))
+
+    assert "content_excerpt" not in payload[0]

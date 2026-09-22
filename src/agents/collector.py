@@ -105,9 +105,15 @@ def _within_window(
 
 
 def _quota_bucket(source_id: str) -> str:
-    """RSS 子源按完整 source_id（rss:feed_name）分桶，其余按类型前缀。"""
+    """RSS 子源按完整 source_id（rss:feed_name）分桶，其余按类型前缀。
+
+    必须与 `_item_quota_bucket` 归一到同一个 key，否则保底和竞争会各记一份计数，
+    让配额上限被绕过。
+    """
     if source_id.startswith("rss:"):
         return source_id
+    if source_id == "github_trending":
+        return SourceType.GITHUB.value
     return source_id.split(":")[0]
 
 

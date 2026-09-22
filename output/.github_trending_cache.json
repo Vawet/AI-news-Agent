@@ -1,29 +1,167 @@
 {
-  "2026-09-20": [
-    "cloudflare/security-audit-skill",
-    "trycua/cua",
-    "addyosmani/agent-skills",
-    "coder/coder",
-    "anthropics/claude-code",
-    "docling-project/docling",
-    "anthropics/knowledge-work-plugins",
-    "cactus-compute/needle"
-  ],
-  "2026-09-21": [
-    "anthropics/claude-code",
-    "affaan-m/ECC",
-    "Tencent/WeKnora",
-    "addyosmani/agent-skills",
-    "anthropics/knowledge-work-plugins",
-    "mksglu/context-mode",
-    "max-sixty/worktrunk",
-    "blader/humanizer",
-    "stablyai/orca",
-    "Panniantong/Agent-Reach",
-    "heygen-com/hyperframes",
-    "danny-avila/LibreChat",
-    "ayghri/i-have-adhd",
-    "cline/cline",
-    "microsoft/markitdown"
-  ]
+  "version": 2,
+  "seen": {
+    "2026-09-20": [
+      "cloudflare/security-audit-skill",
+      "trycua/cua",
+      "addyosmani/agent-skills",
+      "coder/coder",
+      "anthropics/claude-code",
+      "docling-project/docling",
+      "anthropics/knowledge-work-plugins",
+      "cactus-compute/needle"
+    ],
+    "2026-09-21": [
+      "anthropics/claude-code",
+      "affaan-m/ECC",
+      "Tencent/WeKnora",
+      "addyosmani/agent-skills",
+      "anthropics/knowledge-work-plugins",
+      "mksglu/context-mode",
+      "max-sixty/worktrunk",
+      "blader/humanizer",
+      "stablyai/orca",
+      "Panniantong/Agent-Reach",
+      "heygen-com/hyperframes",
+      "danny-avila/LibreChat",
+      "ayghri/i-have-adhd",
+      "cline/cline",
+      "microsoft/markitdown"
+    ],
+    "2026-09-22": [
+      "anthropics/claude-code",
+      "JustVugg/colibri",
+      "Tencent/WeKnora",
+      "affaan-m/ECC",
+      "anthropics/knowledge-work-plugins",
+      "addyosmani/agent-skills",
+      "stablyai/orca",
+      "mksglu/context-mode",
+      "danny-avila/LibreChat",
+      "Panniantong/Agent-Reach",
+      "blader/humanizer",
+      "cline/cline",
+      "cloudflare/security-audit-skill"
+    ]
+  },
+  "repos": {
+    "cloudflare/security-audit-skill": {
+      "first_seen": "2026-09-20",
+      "stars": {
+        "2026-09-22": 19345
+      }
+    },
+    "trycua/cua": {
+      "first_seen": "2026-09-20",
+      "stars": {}
+    },
+    "addyosmani/agent-skills": {
+      "first_seen": "2026-09-20",
+      "stars": {
+        "2026-09-22": 98238
+      }
+    },
+    "coder/coder": {
+      "first_seen": "2026-09-20",
+      "stars": {}
+    },
+    "anthropics/claude-code": {
+      "first_seen": "2026-09-20",
+      "stars": {
+        "2026-09-22": 147533
+      }
+    },
+    "docling-project/docling": {
+      "first_seen": "2026-09-20",
+      "stars": {}
+    },
+    "anthropics/knowledge-work-plugins": {
+      "first_seen": "2026-09-20",
+      "stars": {
+        "2026-09-22": 25386
+      }
+    },
+    "cactus-compute/needle": {
+      "first_seen": "2026-09-20",
+      "stars": {}
+    },
+    "affaan-m/ECC": {
+      "first_seen": "2026-09-21",
+      "stars": {
+        "2026-09-22": 264917
+      }
+    },
+    "Tencent/WeKnora": {
+      "first_seen": "2026-09-21",
+      "stars": {
+        "2026-09-22": 28686
+      }
+    },
+    "mksglu/context-mode": {
+      "first_seen": "2026-09-21",
+      "stars": {
+        "2026-09-22": 23909
+      }
+    },
+    "max-sixty/worktrunk": {
+      "first_seen": "2026-09-21",
+      "stars": {
+        "2026-09-22": 8311
+      }
+    },
+    "blader/humanizer": {
+      "first_seen": "2026-09-21",
+      "stars": {
+        "2026-09-22": 51202
+      }
+    },
+    "stablyai/orca": {
+      "first_seen": "2026-09-21",
+      "stars": {
+        "2026-09-22": 74978
+      }
+    },
+    "Panniantong/Agent-Reach": {
+      "first_seen": "2026-09-21",
+      "stars": {
+        "2026-09-22": 84528
+      }
+    },
+    "heygen-com/hyperframes": {
+      "first_seen": "2026-09-21",
+      "stars": {
+        "2026-09-22": 52206
+      }
+    },
+    "danny-avila/LibreChat": {
+      "first_seen": "2026-09-21",
+      "stars": {
+        "2026-09-22": 44607
+      }
+    },
+    "ayghri/i-have-adhd": {
+      "first_seen": "2026-09-21",
+      "stars": {
+        "2026-09-22": 49926
+      }
+    },
+    "cline/cline": {
+      "first_seen": "2026-09-21",
+      "stars": {
+        "2026-09-22": 69012
+      }
+    },
+    "microsoft/markitdown": {
+      "first_seen": "2026-09-21",
+      "stars": {
+        "2026-09-22": 186260
+      }
+    },
+    "JustVugg/colibri": {
+      "first_seen": "2026-09-22",
+      "stars": {
+        "2026-09-22": 36951
+      }
+    }
+  }
 }

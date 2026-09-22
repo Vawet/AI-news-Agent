@@ -4,6 +4,7 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
+from src.agents.must_read import MustRead, pick_must_read
 from src.config import settings
 from src.graph.state import PipelineState
 from src.llm.client import build_chat_model
@@ -67,7 +68,10 @@ Writing rules:
 9. For official AI Insights, extract the non-obvious core claim, its concrete evidence, and the implication for agent builders; never reduce it to generic PR language
 10. Recommend at most three highly relevant GitHub Trending projects; do not pad Open Source with wrappers, demos, or unrelated popular repos
 11. Do not feature pre-training, post-training, RLHF, or architecture-training papers
-12. Output Markdown directly, no code blocks
+12. Ground every item in `content_excerpt`: name the concrete mechanism, file, metric, or
+    before/after number it reports. Never restate a project's one-line pitch as analysis,
+    and never close an item by telling the reader to go read the original
+13. Output Markdown directly, no code blocks
 
 ## Featured Items (AI score ≥ {threshold}, {featured_count} items)
 {featured_json}
@@ -97,7 +101,8 @@ DEV_WRITER_PROMPT = """你是一位面向「标准业务 Agent 开发者」的 A
 易懂不等于可以瞎编。下面的候选 JSON 是唯一事实来源，你没有读过原文。
 
 【事实】栏的硬约束：
-- 只能陈述候选 JSON 的 title / summary / ai_reason 里出现过的内容，可以改写措辞，不得新增信息。
+- 只能陈述候选 JSON 的 title / summary / content_excerpt / ai_reason 里出现过的内容，可以改写措辞，不得新增信息。
+- `content_excerpt` 是原文节选，属于可引用的事实来源；节选之外的内容仍然不许补。
 - 原文没给的具体细节一律不许补：不许编造机制名称、模块清单、漏洞类型、参数、比例、支持的平台或功能。
   反例：原文只说"包含四种效率机制"，就不能写成"加了缓存、摘要、精简上下文"；原文只说"六阶段安全审计"，就不能写成"检查 SQL 注入、XSS"。
 - 禁止使用"首次""最早""业界唯一""第一个"等最高级，除非候选 JSON 原文出现了对应表述。
@@ -112,9 +117,40 @@ DEV_WRITER_PROMPT = """你是一位面向「标准业务 Agent 开发者」的 A
 
 【核心认知】栏（仅 A3 官方一线条目）：主张和证据都必须来自候选 JSON，不得添加原文没有的结论强度。
 
+━━━━━━ 不许写空话（与严禁编造同等优先） ━━━━━━
+
+读者要的是"它具体怎么做的、我能拿走什么"，不是把项目简介翻译一遍。
+
+`content_excerpt` 里通常有很具体的东西：阶段划分、文件名、配置项、数字、前后对比。【事实】要优先写这些，不要停留在抽象功能词的罗列。
+
+反例（照抄一句话简介，读者看完仍不知道它怎么工作）：
+  "能编排多个相互隔离的 Agent，依次完成侦察、候选验证、结构化输出、独立验证和报告。"
+正例（落到节选里的具体物）：
+  "审计分六个阶段：先画出架构和信任边界写进 architecture.md，再按 coverage-ledger.json 这份覆盖账本分派互相隔离的 hunter 去找漏洞，每条发现都要另一个 Agent 独立复核才算数。"
+
+自检：如果把项目名换成任意另一个项目，你写的【事实】依然成立，那就说明全是空话，必须回到节选里重写。
+
+【落地参考】**禁止**以"建议先读原文/仓库/论文再评估""建议先小范围验证"这类话收尾——这等于没写，读者点链接就能做到。要给出从节选里读出来的具体动作：先看哪个文件、照搬哪个环节、对照哪个指标。
+只有当 `content_excerpt` 确实没有任何可操作信息时，才允许写"原文只给到结论层面"，并且必须点明缺的是什么。
+
+━━━━━━ 标题必须是中文结论句（违反即失败） ━━━━━━
+
+读者扫标题决定看不看，所以标题不能是英文原文。
+
+- 每条的标题写成**中文结论句**，说清"谁做成了什么事 / 得到了什么结论"，不超过 30 字。
+  反例（照搬英文）：`### 1. Linear Reworks CI to Handle AI Coding Bottleneck`
+  正例：`### 1. Linear 重做 CI 流水线，合并等待从 6 分降到 5 分`
+  反例：`#### EvoOntology: Self-Evolving Ontology Layer for Data Agents`
+  正例：`#### EvoOntology 用自演进元数据层，减少数据 Agent 的字段理解错误`
+- 英文原标题**不要写进标题行**，它会自动出现在来源行的链接里，读者需要时可按原名检索。
+- 标题里只保留模型名、产品名、公司名、项目名的原文（如 Linear、Claude Code、EvoOntology），其余一律中文。
+- 标题只能用候选 JSON 里已有的事实，不许为了好看加上原文没有的数字或结论。
+
 ━━━━━━ 说人话（与严禁编造同等优先） ━━━━━━
 
 读者是做业务 Agent 的工程师，不是论文作者。他们看到不认识的缩写就会跳过整条，所以术语必须当场讲明白，不能原样搬运。
+
+但解释要克制：**每条【事实】最多用 1 个括号解释**，留给最关键、读者最可能不认识的那个术语。其余术语直接改写成白话，不要再加括号——一句话里套三四个括号比不解释更难读。
 
 - 术语第一次出现时，用括号补一句白话，说清它是什么、解决什么问题：
   反例：多维 2PL 自适应测试在 200 题时达到 1.03 pp MAE
@@ -133,7 +169,9 @@ DEV_WRITER_PROMPT = """你是一位面向「标准业务 Agent 开发者」的 A
 专业版今天选出的头条如下（可能为空）：
 {top_story_titles}
 
-落地版头条必须与之**完全一致**：数量相同、标题相同、顺序相同。不要自行增减或替换头条；其余条目放进专题报道。若上面为空，则按 ai_score 取前 2-3 条作为头条。
+落地版头条必须指向**同一批新闻**：数量相同、顺序相同、一一对应。不要自行增减或替换头条；其余条目放进专题报道。若上面为空，则按 ai_score 取前 2-3 条作为头条。
+
+注意：上面是英文原标题，仅用于确认"选哪几条"。落地版的标题必须按前述规则改写成中文结论句，**不要照抄这些英文标题**。
 
 ━━━━━━ 输出模板（严格遵循） ━━━━━━
 
@@ -149,19 +187,19 @@ DEV_WRITER_PROMPT = """你是一位面向「标准业务 Agent 开发者」的 A
 
 ## 🔥 头条新闻
 
-### 1. 标题（保留模型/产品名原文）
+### 1. 中文结论句标题（不超过 30 字）
 
-**【事实】** 用大白话复述原文讲了什么，2-3 句；出现术语必须当场用括号讲明白，括号里的解释不计入句数
+**【事实】** 用大白话复述原文讲了什么，2-3 句；最关键的那个术语当场用括号讲明白，括号里的解释不计入句数
 
 **【落地参考】** 如果你的 Agent/项目遇到[XX]，可以考虑[YYY]（编辑建议，用条件句，最多 2 句）
 
-`AI 8.8/10` · [来源-xxx](url)
+`AI 8.8/10` · 来源-xxx · [英文原标题原样照抄](url)
 
 ## 📰 专题报道
 
 ### 主题名
 
-#### 标题
+#### 中文结论句标题
 
 **【事实】** ……（最多 2 句）
 
@@ -169,11 +207,11 @@ DEV_WRITER_PROMPT = """你是一位面向「标准业务 Agent 开发者」的 A
 
 **【核心认知】** ……（仅 A3 官方一线认知条目需要：一句核心主张 + 一句证据/启示）
 
-`AI 8.0/10` · [来源-xxx](url)
+`AI 8.0/10` · 来源-xxx · [英文原标题原样照抄](url)
 
 ## ⚡ 简讯
 
-- **标题** — 一句话。`AI 7.0/10` · [来源-xxx](url)
+- **中文结论句标题** — 一句话。`AI 7.0/10` · 来源-xxx · [英文原标题原样照抄](url)
 
 ---
 
@@ -190,20 +228,22 @@ DEV_WRITER_PROMPT = """你是一位面向「标准业务 Agent 开发者」的 A
 
 写作规则：
 1. 直接用中文生成，不先英后译
-2. 每条保留模型/产品名原文（如 Qwen3.5、Claude Code、Lean）
+2. 标题一律中文结论句；模型/产品/项目名保留原文（如 Qwen3.5、Claude Code、Lean），英文原标题只出现在来源行的链接里
 3. 每条必须有【事实】+【落地参考】+ AI 评分 + 原文链接；官方一线认知条目额外包含【核心认知】
 4. 语气平实口语、每条短；可以通俗，但不能为了通俗牺牲准确；宁可多花一个括号解释术语，也不要留下读者看不懂的缩写
 5. 筛除的 B 类不进正文，只在文末点名；不得把新模型/API 能力更新写进筛除说明
-6. Harness 条目要说明可复用方法或评测/运行方式；原文没给方法细节时，如实说明原文只到结论层面
+6. Harness 条目要说明可复用方法或评测/运行方式；先去 `content_excerpt` 里找具体做法，确实没有才说明原文只到结论层面
 7. GitHub 项目最多 3 个，只描述候选 JSON 里写明的能力
 8. `来源-xxx` 的 xxx 直接用候选 JSON 的 source 字段，不要自行猜测
 9. 直接输出 Markdown，不要代码块包裹
 10. 可读性硬约束（违反即失败）：
+    - 所有标题（`###`、`####`、简讯的粗体）必须是中文结论句，出现英文整句标题即失败
     - 「今日速览」放在头条之前，3-5 条，每条一行，让读者十秒内知道这批讲了什么；只能概括正文已出现的条目
+    - 「今日速览」每行必须是完整白话句子，不许出现未解释的缩写，也不许出现项目名堆叠（反例："EvoOntology 把本体层做成 MCP 服务，DENSE 把轨迹压成捷径树"——读者一个都不认识）
     - 头条用 `###`，专题报道的每条用 `####`，让专题在视觉上低于头条，不要把专题条目写成独立粗体段落
-    - 【事实】2-3 句、【落地参考】最多 2 句，写不下就删细节，不要堆成大段散文；但术语解释不能省
-    - 「今日速览」的每一行也必须是白话，不许出现未解释的缩写
-    - 来源行固定写成 `` `AI x.x/10` · [来源-xxx](url) ``，URL 只出现在链接里一次，正文不要再贴裸链接
+    - 【事实】2-3 句、【落地参考】最多 2 句，写不下就删细节，不要堆成大段散文
+    - 每条【事实】最多 1 个括号解释，其余术语直接写成白话
+    - 来源行固定写成 `` `AI x.x/10` · 来源-xxx · [英文原标题](url) ``，URL 只出现在链接里一次，正文不要再贴裸链接
     - 能用中文表达的就用中文，只有模型名、产品名、API 名、专有技术名词才保留英文
 
 ## 候选新闻（共 {total_count} 条，已按 ai_score 降序）
@@ -412,9 +452,43 @@ def _normalize_source_links(markdown: str) -> str:
 
 
 def _dev_source_line(item: ExtractedItem) -> str:
-    """落地版来源行：评分 + 单个可点击链接，URL 不在正文重复出现。"""
+    """落地版来源行：评分 + 来源标签 + 英文原标题作为唯一链接。
+
+    正文标题写中文结论句，英文原标题降到这一行，便于读者按原名检索。
+    """
     origin = _origin_url(item)
-    return f"`AI {item.ai_score:.1f}/10` · [来源-{_source_label_for_url(origin)}]({origin})"
+    label = _source_label_for_url(origin)
+    return f"`AI {item.ai_score:.1f}/10` · 来源-{label} · [{item.title}]({origin})"
+
+
+def _must_read_block(pick: MustRead, period_word: str) -> list[str]:
+    """必读块：一个标题 + 为什么先看它 + 下一步。"""
+    lines = [
+        f"## 🎯 {period_word}只看一条就看这个",
+        "",
+        f"**{pick.headline_zh}**",
+        "",
+        pick.reason,
+        "",
+    ]
+    if pick.action:
+        lines.append(f"**下一步：** {pick.action}")
+        lines.append("")
+    lines.append(_dev_source_line(pick.item))
+    lines.append("")
+    return lines
+
+
+def _inject_must_read(markdown: str, pick: MustRead | None, period_word: str) -> str:
+    """把必读块插到开头摘要行之后、速览之前。"""
+    if pick is None or "只看一条就看这个" in markdown:
+        return markdown
+    block = _must_read_block(pick, period_word)
+    lines = markdown.splitlines()
+    for idx, line in enumerate(lines):
+        if line.startswith("## "):
+            return "\n".join(lines[:idx] + block + lines[idx:])
+    return "\n".join([*lines, "", *block])
 
 
 def _dev_source_word(item: ExtractedItem) -> str:
@@ -434,9 +508,18 @@ def _normalize_dev_source_labels(markdown: str) -> str:
         url = m.group(2)
         return f"[来源-{_source_label_for_url(url)}]({url})"
 
-    # 已是链接形式：只校正标签
+    def labelled_replacer(m):
+        return f"{m.group(1)}来源-{_source_label_for_url(m.group(3))}{m.group(2)}"
+
+    # 当前格式「`AI x.x/10` · 来源-xxx · [原标题](url)」：只校正标签，保留原标题链接文字
+    markdown = re.sub(
+        r'(`AI\s*[\d.]+/10`\s*·\s*)来源-[\w.-]+(\s*·\s*\[[^\]]*\]\((https?://[^\)]+)\))',
+        labelled_replacer,
+        markdown,
+    )
+    # 旧格式「[来源-xxx](url)」：只校正标签
     markdown = re.sub(r'\[来源-([\w.-]+)\]\((https?://[^\)]+)\)', link_replacer, markdown)
-    # 旧的「来源-xxx — url」裸链接形式：一并收敛成链接
+    # 更旧的「来源-xxx — url」裸链接形式：一并收敛成链接
     return re.sub(r'来源-([\w.-]+)\s*—\s*(https?://\S+)', plain_replacer, markdown)
 
 
@@ -480,6 +563,20 @@ def _annotate_items(markdown: str, items: list[ExtractedItem]) -> str:
     return "\n".join(lines)
 
 
+_EXCERPT_LIMIT = 1200
+
+
+def _content_excerpt(item: ExtractedItem) -> str:
+    """给写作模型的原文节选。
+
+    summary 只有两三句，往往只剩项目的一句话简介，据此只能写出阶段名罗列这类
+    空话。把原文节选一并传过去，防编造规则才有具体事实可依。
+    """
+    meta = item.metadata or {}
+    text = str(meta.get("full_content") or item.content or "").strip()
+    return text[:_EXCERPT_LIMIT]
+
+
 def _items_to_json(items: list[ExtractedItem], brief: bool = False) -> str:
     """将新闻条目转为 JSON 字符串；brief=True 时只保留必要字段以节省 token"""
     import json
@@ -498,6 +595,7 @@ def _items_to_json(items: list[ExtractedItem], brief: bool = False) -> str:
             data.append({
                 "title": item.title,
                 "summary": item.summary,
+                "content_excerpt": _content_excerpt(item),
                 "topics": item.topics,
                 "ai_score": item.ai_score,
                 "ai_reason": item.ai_reason,
@@ -681,6 +779,14 @@ async def writer_node(state: PipelineState) -> dict:
     else:
         logger.info("LLM not configured, dev version using template")
         markdown_dev = _build_fallback_dev_markdown(extracted, today, report_mode)
+
+    # 必读单独一次调用横向重排；ai_score 跨批不可比，不能直接取最高分
+    must_read = await pick_must_read(extracted)
+    markdown_dev = _inject_must_read(
+        markdown_dev,
+        must_read,
+        "本期" if report_mode == "weekly" else "今日",
+    )
 
     description_dev = description_zh or description
 
